@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2022 Renaissance Computing Institute. All rights reserved.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: LicenseRef-RENCI
+# SPDX-License-Identifier: MIT
+
+contact:
+  email: powen@renci.org
+  name: Phil Owen
+  x-id: https://github.com/phillipsowen
+  x-role: responsible developer
+description: 'Website/service that will return data to load the UI with data.'
+servers:
+- description: Default server
+  url: https://apsviz-ui-data.apps.renci.org
+termsOfService: http://robokop.renci.org:7055/tos?service_long=APSVIZ&provider_long=RENCI
+title: APSVIZ UI Data
