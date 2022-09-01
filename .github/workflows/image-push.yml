@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2022 Renaissance Computing Institute. All rights reserved.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: LicenseRef-RENCI
+# SPDX-License-Identifier: MIT
+
+name: Create and publish the APSVIZ UI Data Docker image tagged with "latest" and version number
+
+# trigger event is publishing the repo
+on:
+  release:
+    types: [published]
+
+# working parameters that are specific to this script
+env:
+  REGISTRY: containers.renci.org/eds
+  NAME: apsviz-ui-data
+  USER: ${{ secrets.USER }}
+  PW: ${{ secrets.PW }}
+
+# job definition
+jobs:
+  # job definition
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    # job steps
+    steps:
+      # pull in the code repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # get the tags for the image
+      - name: Get the version
+        id: get_version
+        run: |
+          echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      # build and push the image
+      - name: Build/Push the image to the registry
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.NAME }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.USER }}
+          password: ${{ env.PW }}
+          tags: latest,${{ steps.get_version.outputs.VERSION }}
