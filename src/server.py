@@ -20,7 +20,7 @@ from common.logger import LoggingUtil
 from src.pg_utils import PGUtils
 
 # set the app version
-APP_VERSION = 'v0.0.1'
+APP_VERSION = 'v0.0.2'
 
 # get the log level and directory from the environment.
 # level comes from the container dockerfile, path comes from the k8s secrets
@@ -64,7 +64,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
                                       event_type: Union[str, None] = Query(default=None),
                                       instance_name: Union[str, None] = Query(default=None),
                                       run_date: Union[str, None] = Query(default=None),
-                                      limit: Union[int, None] = Query(default=2)) -> json:
+                                      end_date: Union[str, None] = Query(default=None),
+                                      limit: Union[int, None] = Query(default=4)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -72,7 +73,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
-    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 2)
+    <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
+    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
     """
 
     # init the returned html status code
@@ -87,9 +89,10 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         event_type = 'null' if not event_type else f"'{event_type}'"
         instance_name = 'null' if not instance_name else f"'{instance_name}'"
         run_date = 'null' if not run_date else f"'{run_date}'"
+        end_date = 'null' if not end_date else f"'{end_date}'"
 
         # try to make the call for records
-        ret_val = pg_db.get_terria_map_catalog_data(grid_type, event_type, instance_name, run_date, limit)
+        ret_val = pg_db.get_terria_map_catalog_data(grid_type, event_type, instance_name, run_date, end_date, limit)
     except Exception as e:
         # return a failure message
         ret_val = f'Exception detected trying to get the terria map catalog data.'
@@ -110,7 +113,8 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                                            event_type: Union[str, None] = Query(default=None),
                                            instance_name: Union[str, None] = Query(default=None),
                                            run_date: Union[str, None] = Query(default=None),
-                                           limit: Union[int, None] = Query(default=2)) -> FileResponse:
+                                           end_date: Union[str, None] = Query(default=None),
+                                           limit: Union[int, None] = Query(default=4)) -> FileResponse:
     """
     Returns the json formatted terria map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
@@ -119,7 +123,8 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
-    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 2)
+    <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
+    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
     """
     # init the returned html status code
     status_code = 200
@@ -132,13 +137,14 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     event_type = 'null' if not event_type else f"'{event_type}'"
     instance_name = 'null' if not instance_name else f"'{instance_name}'"
     run_date = 'null' if not run_date else f"'{run_date}'"
+    end_date = 'null' if not end_date else f"'{end_date}'"
 
     try:
         # create the postgres access object
         pg_db = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
 
         # try to make the call for records
-        ret_val = pg_db.get_terria_map_catalog_data(grid_type, event_type, instance_name, run_date, limit)
+        ret_val = pg_db.get_terria_map_catalog_data(grid_type, event_type, instance_name, run_date, end_date, limit)
 
         # write out the data to a file
         with open(file_path, 'w') as fp:

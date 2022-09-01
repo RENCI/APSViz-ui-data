@@ -167,7 +167,7 @@ class PGUtils:
         # return to the caller
         return ret_val
 
-    def get_terria_map_catalog_data(self, grid_type, event_type, instance_name, run_date, limit):
+    def get_terria_map_catalog_data(self, grid_type, event_type, instance_name, run_date, end_date, limit):
         """
         gets the catalog data for the terria map UI
 
@@ -175,7 +175,7 @@ class PGUtils:
         """
 
         # create the sql
-        sql: str = f'SELECT public.get_terria_data_json(_grid_type:={grid_type}, _event_type:={event_type}, _instance_name:={instance_name}, _run_date:={run_date}, _limit:={limit})'
+        sql: str = f'SELECT public.get_terria_data_json(_grid_type:={grid_type}, _event_type:={event_type}, _instance_name:={instance_name}, _run_date:={run_date}, _end_date:={end_date}, _limit:={limit})'
 
         # get the data
         return self.exec_sql(sql)[0][0]
