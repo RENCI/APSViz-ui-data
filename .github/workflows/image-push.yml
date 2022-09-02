@@ -41,7 +41,7 @@ jobs:
 
       # build and push the image
       - name: Build/Push the image to the registry
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v3
         with:
           repository: ${{ env.NAME }}
           registry: ${{ env.REGISTRY }}
