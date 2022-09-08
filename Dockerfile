@@ -13,16 +13,16 @@
 # leverage the renci python base image
 FROM python:3.9-slim
 
+# Copy in just the requirements first for caching purposes
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+
 # create a new non-root user and switch to it
 RUN useradd --create-home -u 1000 nru
 USER nru
 
 # Create the directory for the code and cd to it
 WORKDIR /repo/apsviz-ui-data
-
-# Copy in just the requirements first for caching purposes
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
 
 # Copy in the rest of the code
 COPY . .
