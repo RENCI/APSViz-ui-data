@@ -20,7 +20,7 @@ from common.logger import LoggingUtil
 from src.pg_utils import PGUtils
 
 # set the app version
-APP_VERSION = 'v0.0.2'
+APP_VERSION = 'v0.0.3'
 
 # get the log level and directory from the environment.
 # level comes from the container dockerfile, path comes from the k8s secrets
