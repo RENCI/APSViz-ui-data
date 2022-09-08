@@ -6,45 +6,42 @@
 
 name: Create and publish the APSVIZ UI Data Docker image tagged with "latest" and version number
 
-# trigger event is publishing the repo
+# trigger event is publishing a release in the repo
 on:
   release:
     types: [published]
 
 # working parameters that are specific to this script
 env:
-  REGISTRY: containers.renci.org/eds
-  NAME: apsviz-ui-data
-  USER: ${{ secrets.USER }}
-  PW: ${{ secrets.PW }}
+  REGISTRY: containers.renci.org/eds/apsviz-ui-data
 
 # job definition
 jobs:
-  # job definition
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     # job steps
     steps:
-      # pull in the code repo
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Login to containers.renci.org
+        uses: docker/login-action@v2
+        with:
+          registry: containers.renci.org
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PW }}
 
-      # get the tags for the image
+      # get the tag for the image
       - name: Get the version
         id: get_version
         run: |
           echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
 
-      # build and push the image
+      # build and push the image. The docker v3 action automatically handles the git checkout.
       - name: Build/Push the image to the registry
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v3
         with:
-          repository: ${{ env.NAME }}
-          registry: ${{ env.REGISTRY }}
-          username: ${{ env.USER }}
-          password: ${{ env.PW }}
-          tags: latest,${{ steps.get_version.outputs.VERSION }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}:latest
+            ${{ env.REGISTRY }}:${{ steps.get_version.outputs.VERSION }}
