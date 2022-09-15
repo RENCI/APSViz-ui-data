@@ -4,28 +4,24 @@
 # SPDX-License-Identifier: LicenseRef-RENCI
 # SPDX-License-Identifier: MIT
 
-"""APSVIZ UI Data server."""
+"""
+    APSVIZ UI Data server.
+"""
+
 import json
-import logging
 import os
 
-from enum import Enum
 from typing import Union
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 
 from common.logger import LoggingUtil
-from src.pg_utils import PGUtils
+from common.pg_utils import PGUtils
 
 # set the app version
-APP_VERSION = 'v0.0.3'
-
-# get the log level and directory from the environment.
-# level comes from the container dockerfile, path comes from the k8s secrets
-log_level: int = int(os.getenv('LOG_LEVEL', logging.INFO))
-log_path: str = os.getenv('LOG_PATH', os.path.dirname(__file__))
+APP_VERSION = 'v0.1.0'
 
 # get the DB connection details for the asgs DB
 asgs_dbname = os.environ.get('ASGS_DB_DATABASE')
@@ -37,35 +33,20 @@ apsviz_dbname = os.environ.get('APSVIZ_DB_DATABASE')
 apsviz_username = os.environ.get('APSVIZ_DB_USERNAME')
 apsviz_password = os.environ.get('APSVIZ_DB_PASSWORD')
 
-# create the dir if it does not exist
-if not os.path.exists(log_path):
-    os.mkdir(log_path)
-
 # create a logger
-logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_format='medium', log_file_path=log_path)
+logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", line_format='medium')
 
 # declare the FastAPI details
-APP = FastAPI(
-    title='APSVIZ UI Data',
-    version=APP_VERSION
-)
+APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
 
 # declare app access details
-APP.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
 
 @APP.get('/get_ui_data', status_code=200)
-async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(default=None),
-                                      event_type: Union[str, None] = Query(default=None),
-                                      instance_name: Union[str, None] = Query(default=None),
-                                      run_date: Union[str, None] = Query(default=None),
-                                      end_date: Union[str, None] = Query(default=None),
-                                      limit: Union[int, None] = Query(default=4)) -> json:
+async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
+                                      instance_name: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
+                                      end_date: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -91,11 +72,14 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         run_date = 'null' if not run_date else f"'{run_date}'"
         end_date = 'null' if not end_date else f"'{end_date}'"
 
+        # compile a argument list
+        kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date, "end_date": end_date, "limit": limit}
+
         # try to make the call for records
-        ret_val = pg_db.get_terria_map_catalog_data(grid_type, event_type, instance_name, run_date, end_date, limit)
-    except Exception as e:
+        ret_val = pg_db.get_terria_map_catalog_data(**kwargs)
+    except Exception:
         # return a failure message
-        ret_val = f'Exception detected trying to get the terria map catalog data.'
+        ret_val = 'Exception detected trying to get the terria map catalog data.'
 
         # log the exception
         logger.exception(ret_val)
@@ -109,10 +93,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
 
 @APP.get('/get_ui_data_file', status_code=200)
 async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(default='apsviz.json'),
-                                           grid_type: Union[str, None] = Query(default=None),
-                                           event_type: Union[str, None] = Query(default=None),
-                                           instance_name: Union[str, None] = Query(default=None),
-                                           run_date: Union[str, None] = Query(default=None),
+                                           grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
+                                           instance_name: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
                                            end_date: Union[str, None] = Query(default=None),
                                            limit: Union[int, None] = Query(default=4)) -> FileResponse:
     """
@@ -139,23 +121,27 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     run_date = 'null' if not run_date else f"'{run_date}'"
     end_date = 'null' if not end_date else f"'{end_date}'"
 
+    # compile a argument list
+    kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date, "end_date": end_date,
+              "limit": limit}
+
     try:
         # create the postgres access object
         pg_db = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
 
         # try to make the call for records
-        ret_val = pg_db.get_terria_map_catalog_data(grid_type, event_type, instance_name, run_date, end_date, limit)
+        ret_val = pg_db.get_terria_map_catalog_data(**kwargs)
 
         # write out the data to a file
-        with open(file_path, 'w') as fp:
-            json.dump(ret_val, fp)
+        with open(file_path, 'w', encoding='utf-8') as f_p:
+            json.dump(ret_val, f_p)
 
-    except Exception as e:
+    except Exception:
         # log the exception
-        logger.exception(e)
+        logger.exception("Error getting TerriaMap catalog.")
 
         # set the status to a server error
         status_code = 500
 
     # return to the caller
-    return FileResponse(path=file_path, filename=file_name, media_type='text/json')
+    return FileResponse(path=file_path, filename=file_name, media_type='text/json', status_code=status_code)

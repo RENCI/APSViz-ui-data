@@ -1,0 +1,6 @@
+[MASTER]
+max-line-length=150
+disable=broad-except
+init-hook='import sys; sys.path.append("./")'
+max-args=7
+min-public-methods=0
