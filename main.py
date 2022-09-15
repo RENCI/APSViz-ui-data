@@ -4,12 +4,17 @@
 # SPDX-License-Identifier: LicenseRef-RENCI
 # SPDX-License-Identifier: MIT
 
+"""
+    Main entrypoint for the FastAPI application
+"""
+
 import uvicorn
 
 
 class App:
-    ...
-
+    """
+        FastAPI App placeholder
+    """
 
 app = App()
 
