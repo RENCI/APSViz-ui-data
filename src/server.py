@@ -73,7 +73,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         end_date = 'null' if not end_date else f"'{end_date}'"
 
         # compile a argument list
-        kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date, "end_date": end_date, "limit": limit}
+        kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date, "end_date": end_date,
+                  "limit": limit}
 
         # try to make the call for records
         ret_val = pg_db.get_terria_map_catalog_data(**kwargs)
