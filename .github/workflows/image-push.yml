@@ -17,13 +17,24 @@ env:
 
 # job definition
 jobs:
-  build-and-push-image:
+  pylint-build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     # job steps
     steps:
+      # checkout the codebase
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      # install pylint and run it on the code
+      - name: Python Pylint GitHub Action
+        uses: fylein/python-pylint-github-action@v1
+        with:
+          args: pip3 install -r requirements.txt && pylint --rcfile=.pylintrc --recursive=y ./
+
+      # connect to the renci image registry
       - name: Login to containers.renci.org
         uses: docker/login-action@v2
         with:
