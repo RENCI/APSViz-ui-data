@@ -11,7 +11,7 @@
 # and runs main which starts the web server
 
 # leverage the renci python base image
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # Copy in just the requirements first for caching purposes
 COPY requirements.txt requirements.txt
