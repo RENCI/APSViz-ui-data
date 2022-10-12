@@ -45,8 +45,7 @@ jobs:
       # get the tag for the image
       - name: Get the version
         id: get_version
-        run: |
-          echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
 
       # build and push the image. The docker v3 action automatically handles the git checkout.
       - name: Build/Push the image to the registry
