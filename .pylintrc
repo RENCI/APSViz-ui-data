@@ -10,3 +10,4 @@ disable=broad-except
 init-hook='import sys; sys.path.append("./")'
 max-args=7
 min-public-methods=0
+fail-under=9.5
