@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: LicenseRef-RENCI
 # SPDX-License-Identifier: MIT
 
-name: Build and push the APSVIZ UI Data Docker image tagged with "latest" and version number
+name: Pylint/build/push the Docker image
 
 # trigger event is publishing a release in the repo
 on:
