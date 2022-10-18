@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 [![RENCI License](https://img.shields.io/badge/License-RENCI-blue.svg)](https://renci.org/)
 [![Python](https://img.shields.io/badge/Python-3.10.8-orange)](https://github.com/PyCQA/pylint)
 [![Linting Pylint](https://img.shields.io/badge/Linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
+[![PyLint the codebase](https://github.com/RENCI/apsviz-ui-data/actions/workflows/pylint.yml/badge.svg)](https://github.com/RENCI/apsviz-ui-data/actions/workflows/pylint.yml)
 [![Pylint/build/push the Docker image](https://github.com/RENCI/apsviz-ui-data/actions/workflows/image-push.yml/badge.svg)](https://github.com/RENCI/apsviz-ui-data/actions/workflows/image-push.yml)
 
 # APSViz-UI-Data
