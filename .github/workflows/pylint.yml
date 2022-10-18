@@ -9,7 +9,7 @@ name: PyLint the codebase
 on:
   push:
     branches:
-    - master
+    - main
 
 jobs:
   run_pylint:
