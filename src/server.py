@@ -120,7 +120,6 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     # make the directory
     os.mkdir(temp_file_path)
 
-
     # append the file name
     temp_file_path = os.path.join(temp_file_path, file_name)
 
