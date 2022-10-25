@@ -113,9 +113,15 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     # init the returned html status code
     status_code = 200
 
-    # get the full file path to the dummy file.
+    # get a file path to the temp file directory.
     # append a uuid for a unique path to avoid collisions
     temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
+
+    # make the directory
+    os.mkdir(temp_file_path)
+
+    # append the file name
+    temp_file_path = os.path.join(temp_file_path, file_name)
 
     # prep the data for the DB SP
     grid_type = 'null' if not grid_type else f"'{grid_type}'"
