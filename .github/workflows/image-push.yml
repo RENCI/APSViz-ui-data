@@ -8,7 +8,6 @@ name: Build and publish the docker image
 
 # trigger event is publishing a release in the repo
 on:
-  workflow_dispatch:
   release:
     types: [published]
 
