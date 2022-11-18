@@ -22,12 +22,7 @@ from common.logger import LoggingUtil
 from common.pg_utils import PGUtils
 
 # set the app version
-APP_VERSION = 'v0.2.1'
-
-# get the DB connection details for the asgs DB
-asgs_dbname = os.environ.get('ASGS_DB_DATABASE')
-asgs_username = os.environ.get('ASGS_DB_USERNAME')
-asgs_password = os.environ.get('ASGS_DB_PASSWORD')
+APP_VERSION = 'v0.2.3'
 
 # get the DB connection details for the apsviz DB
 apsviz_dbname = os.environ.get('APSVIZ_DB_DATABASE')
@@ -114,7 +109,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     status_code = 200
 
     # get a file path to the temp file directory.
-    # append a uuid for a unique path to avoid collisions
+    # append a unique path to avoid collisions
     temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
 
     # make the directory
