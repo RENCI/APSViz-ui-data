@@ -22,7 +22,7 @@ class PGUtils:
 
     def __init__(self, dbname, username, password, auto_commit=True):
         # create a logger
-        self.logger = LoggingUtil.init_logging("APSVIZ.apsviz-ui-data.pg_utils", line_format='medium')
+        self.logger = LoggingUtil.init_logging("APSVIZ.ui-data.pg_utils", line_format='medium')
 
         # get configuration params from the pods secrets
         host = os.environ.get('ASGS_DB_HOST')
