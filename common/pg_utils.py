@@ -179,4 +179,3 @@ class PGUtils:
 
         # get the data
         return self.exec_sql(sql)[0][0]
-
