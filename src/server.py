@@ -22,7 +22,7 @@ from common.logger import LoggingUtil
 from common.pg_utils import PGUtils
 
 # set the app version
-APP_VERSION = 'v0.2.4'
+APP_VERSION = 'v0.2.5'
 
 # get the DB connection details for the apsviz DB
 apsviz_dbname = os.environ.get('APSVIZ_DB_DATABASE')
@@ -39,16 +39,18 @@ APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
-@APP.get('/get_ui_data', status_code=200)
+@APP.get('/get_ui_data', status_code=200, response_model=None)
 async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
-                                      instance_name: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                      end_date: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
+                                      instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
+                                      run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
+                                      limit: Union[int, None] = Query(default=4)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ASGS grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
+    <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
@@ -65,11 +67,12 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         grid_type = 'null' if not grid_type else f"'{grid_type}'"
         event_type = 'null' if not event_type else f"'{event_type}'"
         instance_name = 'null' if not instance_name else f"'{instance_name}'"
+        met_class = 'null' if not met_class else f"'{met_class}'"
         run_date = 'null' if not run_date else f"'{run_date}'"
         end_date = 'null' if not end_date else f"'{end_date}'"
 
         # compile a argument list
-        kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date, "end_date": end_date,
+        kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "met_class": met_class, "run_date": run_date, "end_date": end_date,
                   "limit": limit}
 
         # try to make the call for records
@@ -88,11 +91,11 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/get_ui_data_file', status_code=200)
+@APP.get('/get_ui_data_file', status_code=200, response_model=None)
 async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(default='apsviz.json'),
                                            grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
-                                           instance_name: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                           end_date: Union[str, None] = Query(default=None),
+                                           instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
+                                           run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
                                            limit: Union[int, None] = Query(default=4)) -> FileResponse:
     """
     Returns the json formatted terria map UI catalog data in a file specified.
@@ -101,9 +104,10 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ASGS grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
+    <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
-    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
+    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 2)
     """
     # init the returned html status code
     status_code = 200
@@ -122,12 +126,13 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     grid_type = 'null' if not grid_type else f"'{grid_type}'"
     event_type = 'null' if not event_type else f"'{event_type}'"
     instance_name = 'null' if not instance_name else f"'{instance_name}'"
+    met_class = 'null' if not met_class else f"'{met_class}'"
     run_date = 'null' if not run_date else f"'{run_date}'"
     end_date = 'null' if not end_date else f"'{end_date}'"
 
     # compile a argument list
-    kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date, "end_date": end_date,
-              "limit": limit}
+    kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date,
+              "end_date": end_date, "limit": limit, "met_class": met_class}
 
     try:
         # create the postgres access object
@@ -137,12 +142,12 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
         ret_val = pg_db.get_terria_map_catalog_data(**kwargs)
 
         # write out the data to a file
-        with open(temp_file_path, 'w', encoding='utf-8') as f_p:
-            json.dump(ret_val, f_p)
+        with open(temp_file_path, 'w', encoding='utf-8') as f_h:
+            json.dump(ret_val, f_h)
 
     except Exception:
         # log the exception
-        logger.exception("Error getting TerriaMap catalog.")
+        logger.exception('')
 
         # set the status to a server error
         status_code = 500
