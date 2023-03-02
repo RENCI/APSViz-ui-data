@@ -40,7 +40,7 @@ APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
-@APP.get('/get_terria_map_data', status_code=200, response_model=None)
+@APP.get('/get_ui_data', status_code=200, response_model=None)
 async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
