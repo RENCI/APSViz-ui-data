@@ -23,7 +23,7 @@ from common.logger import LoggingUtil
 from common.pg_utils import PGUtils
 
 # set the app version
-APP_VERSION = 'v0.2.5'
+APP_VERSION = 'v0.2.6'
 
 # get the DB connection details for the apsviz DB
 apsviz_dbname = os.environ.get('APSVIZ_DB_DATABASE')
@@ -40,11 +40,12 @@ APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
-@APP.get('/get_ui_data', status_code=200, response_model=None)
+@APP.get('/get_terria_map_data', status_code=200, response_model=None)
 async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                      run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
-                                      limit: Union[int, None] = Query(default=4)) -> json:
+                                      storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
+                                      advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
+                                      end_date: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -52,35 +53,41 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
+    <br/>&nbsp;&nbsp;&nbsp;storm_name: Filter by the storm name
+    <br/>&nbsp;&nbsp;&nbsp;cycle: Filter by the cycle
+    <br/>&nbsp;&nbsp;&nbsp;advisory_number: Filter by the advisory number
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
     """
+    # pylint: disable=unused-argument
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-locals
 
     # init the returned html status code
-    status_code = 200
+    status_code: int = 200
 
     try:
         # create the postgres access object
-        pg_db = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
+        pg_db: PGUtils = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
 
-        # prep the data for the DB SP
-        grid_type = 'null' if not grid_type else f"'{grid_type}'"
-        event_type = 'null' if not event_type else f"'{event_type}'"
-        instance_name = 'null' if not instance_name else f"'{instance_name}'"
-        met_class = 'null' if not met_class else f"'{met_class}'"
-        run_date = 'null' if not run_date else f"'{run_date}'"
-        end_date = 'null' if not end_date else f"'{end_date}'"
+        # init the kwargs variable
+        kwargs: dict = {}
 
-        # compile a argument list
-        kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "met_class": met_class, "run_date": run_date,
-                  "end_date": end_date, "limit": limit}
+        # create the param list
+        params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
+                        'limit']
+
+        # loop through the SP params passed in
+        for param in params:
+            # add this parm to the list
+            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
 
         # try to make the call for records
-        ret_val = pg_db.get_terria_map_catalog_data(**kwargs)
+        ret_val: dict = pg_db.get_terria_map_catalog_data(**kwargs)
     except Exception:
         # return a failure message
-        ret_val = 'Exception detected trying to get the terria map catalog data.'
+        ret_val: str = 'Exception detected trying to get the terria map catalog data.'
 
         # log the exception
         logger.exception(ret_val)
@@ -92,12 +99,13 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/get_ui_data_file', status_code=200, response_model=None)
+@APP.get('/get_terria_map_data_file', status_code=200, response_model=None)
 async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(default='apsviz.json'),
                                            grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                                            instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                           run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
-                                           limit: Union[int, None] = Query(default=4)) -> FileResponse:
+                                           storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
+                                           advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
+                                           end_date: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
     Returns the json formatted terria map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
@@ -106,12 +114,31 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
+    <br/>&nbsp;&nbsp;&nbsp;storm_name: Filter by the storm name
+    <br/>&nbsp;&nbsp;&nbsp;cycle: Filter by the cycle
+    <br/>&nbsp;&nbsp;&nbsp;advisory_number: Filter by the advisory number
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
-    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 2)
+    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
     """
+    # pylint: disable=unused-argument
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-locals
+
     # init the returned html status code
-    status_code = 200
+    status_code: int = 200
+
+    # init the kwargs variable
+    kwargs: dict = {}
+
+    # create the param list
+    params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
+                    'limit']
+
+    # loop through the SP params passed in
+    for param in params:
+        # add this parm to the list
+        kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
 
     # get a file path to the temp file directory.
     # append a unique path to avoid collisions
@@ -121,26 +148,14 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     os.makedirs(temp_file_path)
 
     # append the file name
-    temp_file_path = os.path.join(temp_file_path, file_name)
-
-    # prep the data for the DB SP
-    grid_type = 'null' if not grid_type else f"'{grid_type}'"
-    event_type = 'null' if not event_type else f"'{event_type}'"
-    instance_name = 'null' if not instance_name else f"'{instance_name}'"
-    met_class = 'null' if not met_class else f"'{met_class}'"
-    run_date = 'null' if not run_date else f"'{run_date}'"
-    end_date = 'null' if not end_date else f"'{end_date}'"
-
-    # compile a argument list
-    kwargs = {'grid_type': grid_type, "event_type": event_type, "instance_name": instance_name, "run_date": run_date, "end_date": end_date,
-              "limit": limit, "met_class": met_class}
+    temp_file_path: str = os.path.join(temp_file_path, file_name)
 
     try:
         # create the postgres access object
-        pg_db = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
+        pg_db: PGUtils = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
 
         # try to make the call for records
-        ret_val = pg_db.get_terria_map_catalog_data(**kwargs)
+        ret_val: dict = pg_db.get_terria_map_catalog_data(**kwargs)
 
         # write out the data to a file
         with open(temp_file_path, 'w', encoding='utf-8') as f_h:
