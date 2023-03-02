@@ -179,6 +179,5 @@ class PGUtils:
                    f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
                    f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']})"
 
-
         # get the data
         return self.exec_sql(sql)[0][0]
