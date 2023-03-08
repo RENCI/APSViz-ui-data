@@ -23,7 +23,7 @@ from common.logger import LoggingUtil
 from common.pg_utils import PGUtils
 
 # set the app version
-APP_VERSION = 'v0.2.6'
+APP_VERSION = 'v0.2.7'
 
 # get the DB connection details for the apsviz DB
 apsviz_dbname = os.environ.get('APSVIZ_DB_DATABASE')
