@@ -173,11 +173,44 @@ class PGUtils:
 
         :return:
         """
+        # init the return
+        catalog_list: dict = {}
+
         # create the sql
         sql: str = f"SELECT public.get_terria_data_json(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
                    f"_instance_name:={kwargs['instance_name']}, _run_date:={kwargs['run_date']}, _end_date:={kwargs['end_date']}, " \
                    f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
                    f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']})"
 
-        # get the data
-        return self.exec_sql(sql)[0][0]
+        # get the layer list
+        catalog_list = self.exec_sql(sql)[0][0]
+
+        # get the pull-down data using the above filtering mechanisms
+        pulldown_data: dict = self.get_pull_down_data(**kwargs)
+
+        # merge the pulldown data to the catalog list
+        catalog_list.update({'pulldown_data': pulldown_data})
+
+        # return the data
+        return catalog_list
+
+    def get_pull_down_data(self, **kwargs) -> dict:
+        """
+        gets the pulldown data given the list of filtering mechanisms passed.
+
+        :param kwargs:
+        :return:
+        """
+        # init the return value
+        pulldown_data: dict = {}
+
+        # get the pull-down data
+        sql = f"SELECT public.get_terria_pulldown_data(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
+              f"_instance_name:={kwargs['instance_name']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
+              f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']});"
+
+        # get the pulldown data
+        pulldown_data = self.exec_sql(sql)[0][0]
+
+        # return the full dataset to the caller
+        return pulldown_data
