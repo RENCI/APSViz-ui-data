@@ -88,4 +88,3 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # return the full dataset to the caller
         return pulldown_data
-
