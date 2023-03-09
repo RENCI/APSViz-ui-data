@@ -19,11 +19,11 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 
-from common.logger import LoggingUtil
-from common.pg_utils import PGUtils
+from src.common.logger import LoggingUtil
+from src.common.pg_impl import PGImplementation
 
 # set the app version
-APP_VERSION = 'v0.2.7'
+APP_VERSION = 'v0.3.0'
 
 # get the DB connection details for the apsviz DB
 apsviz_dbname = os.environ.get('APSVIZ_DB_DATABASE')
@@ -68,8 +68,12 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     status_code: int = 200
 
     try:
-        # create the postgres access object
-        pg_db: PGUtils = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
+        # specify the DB to get a connection
+        # note the extra comma makes this single item a singleton tuple
+        db_name: tuple = ('apsviz',)
+
+        # create a DB connection object
+        db_info: PGImplementation = PGImplementation(db_name)
 
         # init the kwargs variable
         kwargs: dict = {}
@@ -84,7 +88,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
 
         # try to make the call for records
-        ret_val: dict = pg_db.get_terria_map_catalog_data(**kwargs)
+        ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
     except Exception:
         # return a failure message
         ret_val: str = 'Exception detected trying to get the terria map catalog data.'
@@ -151,11 +155,15 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     temp_file_path: str = os.path.join(temp_file_path, file_name)
 
     try:
-        # create the postgres access object
-        pg_db: PGUtils = PGUtils(apsviz_dbname, apsviz_username, apsviz_password)
+        # specify the DB to get a connection
+        # note the extra comma makes this single item a singleton tuple
+        db_name: tuple = ('apsviz',)
+
+        # create a DB connection object
+        db_info: PGImplementation = PGImplementation(db_name)
 
         # try to make the call for records
-        ret_val: dict = pg_db.get_terria_map_catalog_data(**kwargs)
+        ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
         # write out the data to a file
         with open(temp_file_path, 'w', encoding='utf-8') as f_h:
