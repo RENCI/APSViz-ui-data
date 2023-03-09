@@ -6,7 +6,9 @@
 # SPDX-License-Identifier: MIT
 
 """
-    Logger methods for all components
+    Logging utilities.
+
+    Author: Phil Owen, 10/19/2022
 """
 
 import os
@@ -16,21 +18,11 @@ from logging.handlers import RotatingFileHandler
 
 class LoggingUtil:
     """
-    creates and configures a logger
+        Creates and configures a logger
     """
 
     @staticmethod
-    def get_log_path() -> str:
-        """
-        gets the log path
-
-        :return:
-        """
-        # return the log path
-        return os.getenv('LOG_PATH', os.path.dirname(__file__))
-
-    @staticmethod
-    def init_logging(name, level=None, line_format='short', log_file_path=None):
+    def init_logging(name, level=logging.INFO, line_format='short', log_file_path=None):
         """
             Logging utility controlling format and setting initial logging level
         """
@@ -40,17 +32,6 @@ class LoggingUtil:
         # is this the root
         if not logger.parent.name == 'root':
             return logger
-
-        # get the log level and directory from the environment
-        if level is None:
-            level: int = int(os.getenv('LOG_LEVEL', str(logging.INFO)))
-
-        if log_file_path is None:
-            log_file_path: str = os.getenv('LOG_PATH', os.path.dirname(__file__))
-
-        # create the dir if it does not exist
-        if not os.path.exists(log_file_path):
-            os.mkdir(log_file_path)
 
         # define the various output formats
         format_type = {"minimum": '%(message)s', "short": '%(funcName)s(): %(message)s', "medium": '%(asctime)-15s - %(funcName)s(): %(message)s',
@@ -90,3 +71,20 @@ class LoggingUtil:
 
         # return to the caller
         return logger
+
+    @staticmethod
+    def prep_for_logging() -> (int, str):
+        """
+        gets the environment variables for the log level and directory.
+
+        :return:
+        """
+        log_level: int = int(os.getenv('LOG_LEVEL', str(logging.DEBUG)))
+        log_path: str = os.getenv('LOG_PATH', os.path.dirname(__file__))
+
+        # create the dir if it does not exist
+        if not os.path.exists(log_path):
+            os.mkdir(log_path)
+
+        # return to the caller
+        return log_level, log_path
