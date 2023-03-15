@@ -23,21 +23,26 @@ from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 
 # set the app version
-APP_VERSION = 'v0.3.0'
-
-# get the DB connection details for the apsviz DB
-apsviz_dbname = os.environ.get('APSVIZ_DB_DATABASE')
-apsviz_username = os.environ.get('APSVIZ_DB_USERNAME')
-apsviz_password = os.environ.get('APSVIZ_DB_PASSWORD')
-
-# create a logger
-logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", line_format='medium')
+APP_VERSION = 'v0.3.1'
 
 # declare the FastAPI details
 APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
 
+# get the log level and directory from the environment.
+log_level, log_path = LoggingUtil.prep_for_logging()
+
+# create a logger
+logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_format='medium', log_file_path=log_path)
+
 # declare app access details
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+# specify the DB to get a connection
+# note the extra comma makes this single item a singleton tuple
+db_name: tuple = ('apsviz',)
+
+# create a DB connection object
+db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
 
 @APP.get('/get_ui_data', status_code=200, response_model=None)
@@ -68,13 +73,6 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     status_code: int = 200
 
     try:
-        # specify the DB to get a connection
-        # note the extra comma makes this single item a singleton tuple
-        db_name: tuple = ('apsviz',)
-
-        # create a DB connection object
-        db_info: PGImplementation = PGImplementation(db_name)
-
         # init the kwargs variable
         kwargs: dict = {}
 
@@ -155,13 +153,6 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     temp_file_path: str = os.path.join(temp_file_path, file_name)
 
     try:
-        # specify the DB to get a connection
-        # note the extra comma makes this single item a singleton tuple
-        db_name: tuple = ('apsviz',)
-
-        # create a DB connection object
-        db_info: PGImplementation = PGImplementation(db_name)
-
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
