@@ -18,9 +18,8 @@ from logging.handlers import RotatingFileHandler
 
 class LoggingUtil:
     """
-        Creates and configures a logger
+    creates and configures a logger
     """
-
     @staticmethod
     def init_logging(name, level=logging.INFO, line_format='short', log_file_path=None):
         """
@@ -51,6 +50,9 @@ class LoggingUtil:
 
         # set the logging level
         logger.setLevel(level)
+
+        # dont allow message propagation
+        logger.propagate = False
 
         # if there was a file path passed in use it
         if log_file_path is not None:
