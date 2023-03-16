@@ -12,6 +12,7 @@
 import json
 import os
 import uuid
+import requests
 
 from typing import Union
 
@@ -40,9 +41,6 @@ APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, 
 # specify the DB to get a connection
 # note the extra comma makes this single item a singleton tuple
 db_name: tuple = ('apsviz',)
-
-# create a DB connection object
-db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
 
 @APP.get('/get_ui_data', status_code=200, response_model=None)
@@ -84,6 +82,9 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         for param in params:
             # add this parm to the list
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # create a DB connection object
+        db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
@@ -153,6 +154,9 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     temp_file_path: str = os.path.join(temp_file_path, file_name)
 
     try:
+        # create a DB connection object
+        db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
+
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
@@ -166,6 +170,57 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
 
         # set the status to a server error
         status_code = 500
+
+    # return to the caller
+    return FileResponse(path=temp_file_path, filename=file_name, media_type='text/json', status_code=status_code)
+
+
+@APP.get('/get_time_series_csv', status_code=200, response_model=None)
+def get_time_series_csv(file_name: Union[str, None] = Query(default='apsviz.json')):
+    """
+
+    :return:
+    """
+    # init the returned html status code
+    status_code: int = 200
+
+    # var getData = async function(apiurl, timemark, station_name, gauge_source, nowcast_source, forecast_source)
+    # getData('http://apsviz-timeseriesdb.edc.renci.org/api/','2022-01-09T00:00:00Z','8651370','tidal_gauge','nowcast_hsofs','namforecast_hsofs');
+
+    api_url = 'https://test-apsviz-timeseries.apps.renci.org/api/gauge_station_source_data/?'
+    station_name = '8651370'
+    gauge_source = 'tidal_gauge'
+    nowcast_source = 'nowcast_ncsc_sab_v1.23'
+    start_dt = '2023-01-29T07:00:00Z'
+    time_mark = '2023-02-02T07:00:00Z'
+
+    final_1 = api_url + 'gauge_station_source_data/?station_name=' + station_name + '&data_source__in=' + gauge_source \
+                        + ',' + nowcast_source + ',tidal_predictions&time__gt=' + start_dt + '&time__lt=' + time_mark + '&psize=5000&format=json'
+
+    response = requests.get(final_1)
+    tmp = json.dumps(response.json())
+
+    # forecast_source = ''
+    # final_2 = api_url + 'gauge_station_source_data/?station_name=' + station_name + '&data_source=' + forecast_source + '&time_mark=' \
+    #                       + time_mark + '&psize=5000&format=json'
+    # response = requests.get(final_2)
+    # print(response.json())
+    #
+    # end_dt = ''
+    # final_3 = api_url + 'gauge_station_source_data/?station_name=' + station_name + '&data_source=tidal_predictions&time__gt=' \
+    #                       + time_mark + '&time__lt=' + end_dt + '&psize=5000&format=json'
+    # response = requests.get(final_3)
+    # print(response.json())
+
+    # get a file path to the temp file directory.
+    # append a unique path to avoid collisions
+    temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
+
+    # make the directory
+    os.makedirs(temp_file_path)
+
+    # append the file name
+    temp_file_path: str = os.path.join(temp_file_path, file_name)
 
     # return to the caller
     return FileResponse(path=temp_file_path, filename=file_name, media_type='text/json', status_code=status_code)
