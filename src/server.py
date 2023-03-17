@@ -12,19 +12,19 @@
 import json
 import os
 import uuid
-import requests
+import csv
 
 from typing import Union
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse
 
 from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 
 # set the app version
-APP_VERSION = 'v0.3.3'
+APP_VERSION = 'v0.3.4'
 
 # declare the FastAPI details
 APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
@@ -37,10 +37,6 @@ logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_for
 
 # declare app access details
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-
-# specify the DB to get a connection
-# note the extra comma makes this single item a singleton tuple
-db_name: tuple = ('apsviz',)
 
 
 @APP.get('/get_ui_data', status_code=200, response_model=None)
@@ -82,6 +78,9 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         for param in params:
             # add this parm to the list
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # specify the DB to get a connection
+        db_name: tuple = ('apsviz',)
 
         # create a DB connection object
         db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
@@ -154,6 +153,9 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     temp_file_path: str = os.path.join(temp_file_path, file_name)
 
     try:
+        # specify the DB to get a connection
+        db_name: tuple = ('apsviz',)
+
         # create a DB connection object
         db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
@@ -175,8 +177,9 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     return FileResponse(path=temp_file_path, filename=file_name, media_type='text/json', status_code=status_code)
 
 
-@APP.get('/get_time_series_csv', status_code=200, response_model=None)
-def get_time_series_csv(file_name: Union[str, None] = Query(default='apsviz.json')):
+@APP.get('/get_obs_station_data', status_code=200, response_model=None, response_class=PlainTextResponse)
+def get_obs_station_data(station_name: Union[str, None] = Query(default=None), start_date: Union[str, None] = Query(default=None),
+                         end_date: Union[str, None] = Query(default=None)) -> PlainTextResponse:
     """
 
     :return:
@@ -184,43 +187,49 @@ def get_time_series_csv(file_name: Union[str, None] = Query(default='apsviz.json
     # init the returned html status code
     status_code: int = 200
 
-    # var getData = async function(apiurl, timemark, station_name, gauge_source, nowcast_source, forecast_source)
-    # getData('http://apsviz-timeseriesdb.edc.renci.org/api/','2022-01-09T00:00:00Z','8651370','tidal_gauge','nowcast_hsofs','namforecast_hsofs');
+    # inti the return value
+    ret_val: dict = {}
 
-    api_url = 'https://test-apsviz-timeseries.apps.renci.org/api/gauge_station_source_data/?'
-    station_name = '8651370'
-    gauge_source = 'tidal_gauge'
-    nowcast_source = 'nowcast_ncsc_sab_v1.23'
-    start_dt = '2023-01-29T07:00:00Z'
-    time_mark = '2023-02-02T07:00:00Z'
+    try:
+        # init the kwargs variable
+        kwargs: dict = {}
 
-    final_1 = api_url + 'gauge_station_source_data/?station_name=' + station_name + '&data_source__in=' + gauge_source \
-                        + ',' + nowcast_source + ',tidal_predictions&time__gt=' + start_dt + '&time__lt=' + time_mark + '&psize=5000&format=json'
+        # create the param list
+        params: list = ['station_name', 'start_date', 'end_date']
 
-    response = requests.get(final_1)
-    tmp = json.dumps(response.json())
+        # loop through the SP params passed in
+        for param in params:
+            # add this parm to the list
+            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
 
-    # forecast_source = ''
-    # final_2 = api_url + 'gauge_station_source_data/?station_name=' + station_name + '&data_source=' + forecast_source + '&time_mark=' \
-    #                       + time_mark + '&psize=5000&format=json'
-    # response = requests.get(final_2)
-    # print(response.json())
-    #
-    # end_dt = ''
-    # final_3 = api_url + 'gauge_station_source_data/?station_name=' + station_name + '&data_source=tidal_predictions&time__gt=' \
-    #                       + time_mark + '&time__lt=' + end_dt + '&psize=5000&format=json'
-    # response = requests.get(final_3)
-    # print(response.json())
+        # declare the database to use
+        db_name: tuple = ('apsviz_gauges',)
 
-    # get a file path to the temp file directory.
-    # append a unique path to avoid collisions
-    temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
+        # create a DB connection object
+        db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
-    # make the directory
-    os.makedirs(temp_file_path)
+        # try to make the call for records
+        ret_val: dict = db_info.get_obs_station_data(**kwargs)
 
-    # append the file name
-    temp_file_path: str = os.path.join(temp_file_path, file_name)
+        # start the conversion to a CSV stream
+        # first get the columns
+        output_data = ','.join(list(ret_val[0].keys())) + '\n'
+
+        # now get the data
+        for item in ret_val:
+            # convert it into CSV
+            output_data += ','.join([str(x) if x is not None else '' for x in list(item.values())]) + '\n'
+
+        logger.debug('Output data: %s', output_data)
+    except Exception:
+        # return a failure message
+        ret_val: str = 'Exception detected trying to get the station data.'
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
 
     # return to the caller
-    return FileResponse(path=temp_file_path, filename=file_name, media_type='text/json', status_code=status_code)
+    return PlainTextResponse(content=output_data, status_code=status_code, media_type="text/plain")

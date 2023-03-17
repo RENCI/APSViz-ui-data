@@ -93,3 +93,23 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # return the full dataset to the caller
         return pulldown_data
+
+    def get_obs_station_data(self, **kwargs):
+        """
+        gets the obs station data.
+
+        :param kwargs:
+        :return:
+        """
+        # init the return
+        observations_list: dict = {}
+
+        # create the sql
+        sql: str = f"SELECT public.get_obs_station_data(_station_name := {kwargs['station_name']}, _start_date := {kwargs['start_date']}, " \
+                   f"_end_date := {kwargs['end_date']});"
+
+        # get the layer list
+        observations_list = self.exec_sql('apsviz_gauges', sql)
+
+        # return the data
+        return observations_list
