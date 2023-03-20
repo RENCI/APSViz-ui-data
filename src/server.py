@@ -24,7 +24,7 @@ from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 
 # set the app version
-APP_VERSION = 'v0.3.4'
+APP_VERSION = 'v0.3.5'
 
 # declare the FastAPI details
 APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
@@ -37,6 +37,12 @@ logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_for
 
 # declare app access details
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+# declare the database to use
+db_name: tuple = ('apsviz', 'apsviz_gauges')
+
+# create a DB connection object
+db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
 
 @APP.get('/get_ui_data', status_code=200, response_model=None)
@@ -78,12 +84,6 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         for param in params:
             # add this parm to the list
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
-
-        # specify the DB to get a connection
-        db_name: tuple = ('apsviz',)
-
-        # create a DB connection object
-        db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
@@ -153,12 +153,6 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     temp_file_path: str = os.path.join(temp_file_path, file_name)
 
     try:
-        # specify the DB to get a connection
-        db_name: tuple = ('apsviz',)
-
-        # create a DB connection object
-        db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
-
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
@@ -201,12 +195,6 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
         for param in params:
             # add this parm to the list
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
-
-        # declare the database to use
-        db_name: tuple = ('apsviz_gauges',)
-
-        # create a DB connection object
-        db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
         # try to make the call for records
         ret_val: dict = db_info.get_obs_station_data(**kwargs)
