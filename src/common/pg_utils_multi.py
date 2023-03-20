@@ -16,7 +16,6 @@ import time
 from collections import namedtuple
 
 import psycopg2
-from psycopg2.extensions import STATUS_READY
 
 from src.common.logger import LoggingUtil
 
@@ -100,9 +99,6 @@ class PGUtilsMultiConnect:
 
                 # close it
                 conn.close()
-
-                # clear the connection object
-                self.dbs[db_name].conn = None
         except Exception:
             self.logger.error('Error detected closing the %s DB connection.', db_name)
 
@@ -167,18 +163,20 @@ class PGUtilsMultiConnect:
                         # add the verified connection to the dict
                         self.dbs.update({db_info.name: verified_tuple})
 
-                        # return connection successful
-                        return True
-                # connection tested ok so use it
-                else:
-                    return True
+                        # no need to continue
+                        break
 
             except Exception:
                 self.logger.error('Error getting connection %s.', db_info.name)
                 good_conn = False
 
-            self.logger.error('DB Connection failed to %s. Retrying...', db_info.name)
-            time.sleep(5)
+            # are we still looking for a connection
+            if good_conn is False:
+                self.logger.error('DB Connection failed to %s. Retrying...', db_info.name)
+                time.sleep(5)
+
+        # return pass/fail flag
+        return good_conn
 
     def check_db_connection(self, db_info: namedtuple) -> bool:
         """
@@ -207,13 +205,8 @@ class PGUtilsMultiConnect:
                 # get the value
                 db_version = cursor.fetchone()
 
-                # did we get a value
-                if db_version:
-                    # update the return flag
-                    ret_val = True
-                else:
-                    # need a new connection
-                    ret_val = False
+                # set the success (or not) flag
+                ret_val = bool(db_version)
 
         except Exception:
             self.logger.error('Error general DB connection issue')
