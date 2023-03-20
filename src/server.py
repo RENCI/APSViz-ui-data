@@ -12,7 +12,6 @@
 import json
 import os
 import uuid
-import csv
 
 from typing import Union
 
@@ -175,6 +174,9 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
 def get_obs_station_data(station_name: Union[str, None] = Query(default=None), start_date: Union[str, None] = Query(default=None),
                          end_date: Union[str, None] = Query(default=None)) -> PlainTextResponse:
     """
+    Returns the CSV formatted observational station.
+
+    Note that all fields are mandatory.
 
     :return:
     """
@@ -185,33 +187,46 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
     ret_val: dict = {}
 
     try:
-        # init the kwargs variable
-        kwargs: dict = {}
+        # validate the input. nothing is optional
+        if station_name or start_date or end_date:
+            # init the kwargs variable
+            kwargs: dict = {}
 
-        # create the param list
-        params: list = ['station_name', 'start_date', 'end_date']
+            # create the param list
+            params: list = ['station_name', 'start_date', 'end_date']
 
-        # loop through the SP params passed in
-        for param in params:
-            # add this parm to the list
-            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+            # loop through the SP params passed in
+            for param in params:
+                # add this parm to the list
+                kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
 
-        # try to make the call for records
-        ret_val: dict = db_info.get_obs_station_data(**kwargs)
+            # try to make the call for records
+            ret_val: dict = db_info.get_obs_station_data(**kwargs)
 
-        # start the conversion to a CSV stream
-        # first get the columns
-        output_data = ','.join(list(ret_val[0].keys())) + '\n'
+            # was the call successful
+            if ret_val != -1:
+                # start getting the CSV data. first get the columns
+                csv_data = ','.join(list(ret_val[0].keys())) + '\n'
 
-        # now get the data
-        for item in ret_val:
-            # convert it into CSV
-            output_data += ','.join([str(x) if x is not None else '' for x in list(item.values())]) + '\n'
+                # now get the data
+                for item in ret_val:
+                    # convert it into CSV
+                    csv_data += ','.join([str(x) if x is not None else '' for x in list(item.values())]) + '\n'
 
-        logger.debug('Output data: %s', output_data)
+                logger.debug('Output data: %s', csv_data)
+
+                # set the return data
+                ret_val = csv_data
+            else:
+                # set the Warning message
+                ret_val = 'Error executing query - No data or error detected collecting data.'
+        else:
+            # set the error message
+            ret_val = 'Error invalid input - Insure that all input fields are populated.'
+
     except Exception:
         # return a failure message
-        ret_val: str = 'Exception detected trying to get the station data.'
+        ret_val: str = 'Exception - Error detected trying to get station data.'
 
         # log the exception
         logger.exception(ret_val)
@@ -220,4 +235,4 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
         status_code = 500
 
     # return to the caller
-    return PlainTextResponse(content=output_data, status_code=status_code, media_type="text/plain")
+    return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/plain")
