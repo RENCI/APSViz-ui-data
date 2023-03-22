@@ -243,7 +243,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
                                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                       advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                      end_date: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
+                                      end_date: Union[str, None] = Query(default=None)) -> json:
     """
     Gets the json formatted UI pulldown data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -256,7 +256,6 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     <br/>&nbsp;&nbsp;&nbsp;advisory_number: Filter by the advisory number
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
-    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
     """
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
@@ -270,8 +269,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
-                        'limit']
+        params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date']
 
         # loop through the SP params passed in
         for param in params:
