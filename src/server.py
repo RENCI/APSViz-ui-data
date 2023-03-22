@@ -240,10 +240,10 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
 
 @APP.get('/get_pulldown_data', status_code=200, response_model=None)
 async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
-                                      instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                      storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
-                                      advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                      end_date: Union[str, None] = Query(default=None)) -> json:
+                            instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
+                            storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
+                            advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
+                            end_date: Union[str, None] = Query(default=None)) -> json:
     """
     Gets the json formatted UI pulldown data.
     <br/>Note: Leave filtering params empty if not desired.
