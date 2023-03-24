@@ -135,4 +135,3 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # return the data
         return ret_val
-
