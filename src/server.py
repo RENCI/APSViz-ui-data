@@ -38,7 +38,7 @@ logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_for
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 # declare the database to use
-db_name: tuple = ('apsviz', 'apsviz_gauges')
+db_name: tuple = ('apsviz', 'apsviz_gauges', 'asgs')
 
 # create a DB connection object
 db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
@@ -257,10 +257,6 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     """
-    # pylint: disable=unused-argument
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-locals
-
     # init the returned html status code
     status_code: int = 200
 
@@ -281,6 +277,37 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     except Exception:
         # return a failure message
         ret_val: str = 'Exception detected trying to get the UI pulldown data.'
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
+@APP.get('/get_run_prop_urls', status_code=200, response_model=None)
+async def get_run_prop_urls(source_type: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=''),
+                        end_date: Union[str, None] = Query(default='')) -> json:
+    """
+    Gets the json formatted run properties data.
+    <br/>Note: Leave filtering params empty if not desired.
+    <br/>&nbsp;&nbsp;&nbsp;source_type: Filter by the data source type
+    <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
+    <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date in the form of yyyy-mm-dd
+
+    """
+    # init the returned html status code
+    status_code: int = 200
+
+    try:
+        # try to make the call for records
+        ret_val: dict = db_info.get_run_prop_urls(source_type, run_date, end_date)
+
+    except Exception:  # return a failure message
+        ret_val: str = 'Exception detected trying to get the run properties URL data.'
 
         # log the exception
         logger.exception(ret_val)

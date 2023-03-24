@@ -113,3 +113,26 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # return the data
         return observations_list
+
+    def get_run_prop_urls(self, source_type, run_date, end_date) -> dict:
+        """
+        gets the image urls in the run props for a source type (ASGS, ECFLOW, etc.
+
+        :param source_type:
+        :param run_date:
+        :param end_date:
+        :return:
+        """
+
+        # init the return
+        ret_val: dict = {}
+
+        # create the sql
+        sql: str = f"SELECT public.get_run_prop_urls(_source_type := '{source_type}', _run_date := '{run_date}', _end_date := '{end_date}');"
+
+        # get the layer list
+        ret_val = self.exec_sql('asgs', sql)
+
+        # return the data
+        return ret_val
+
