@@ -261,6 +261,10 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     status_code: int = 200
 
     try:
+        logger.debug(
+            'Input params - grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
+            'run_date: %s, end_date: %s', grid_type, event_type, instance_name, met_class, storm_name, cycle, advisory_number, run_date, end_date)
+
         # init the kwargs variable
         kwargs: dict = {}
 
@@ -290,7 +294,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
 @APP.get('/get_run_prop_urls', status_code=200, response_model=None)
 async def get_run_prop_urls(source_type: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=''),
-                        end_date: Union[str, None] = Query(default='')) -> json:
+                            end_date: Union[str, None] = Query(default='')) -> json:
     """
     Gets the json formatted run properties data.
     <br/>Note: Leave filtering params empty if not desired.
