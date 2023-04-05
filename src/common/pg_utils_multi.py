@@ -72,7 +72,6 @@ class PGUtilsMultiConnect:
             # get the connection
             self.get_db_connection(temp_tuple)
 
-
     def __del__(self):
         """
         Close up the DB connections and cursors
@@ -157,8 +156,10 @@ class PGUtilsMultiConnect:
                     good_conn = self.check_db_connection(verified_tuple)
 
                     # is the connection ok now?
-                    if good_conn:
-                        self.logger.info('DB Connection established (auto commit %s) to %s.', self.auto_commit, db_info.name)
+                    if not good_conn:
+                        self.logger.warning('DB Connection not established (auto commit %s) to %s.', self.auto_commit, db_info.name)
+                    else:
+                        self.logger.debug('DB Connection established (auto commit %s) to %s.', self.auto_commit, db_info.name)
 
                         # add the verified connection to the dict
                         self.dbs.update({db_info.name: verified_tuple})
@@ -194,6 +195,9 @@ class PGUtilsMultiConnect:
         try:
             # is there an existing connection
             if not db_info.conn:
+                self.logger.warning('Existing DB connection not found. %s', db_info)
+
+                # force getting a new connection
                 ret_val = False
             else:
                 # get the cursor
