@@ -23,7 +23,7 @@ from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 
 # set the app version
-APP_VERSION = 'v0.3.8'
+APP_VERSION = 'v0.3.9'
 
 # declare the FastAPI details
 APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
