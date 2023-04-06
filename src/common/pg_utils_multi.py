@@ -213,13 +213,13 @@ class PGUtilsMultiConnect:
                 ret_val = bool(db_version)
 
         except psycopg2.DatabaseError:
-            self.logger.error('Error database error checking DB connection')
+            self.logger.debug('Error database error checking DB connection.')
 
             # connection failed
             ret_val = False
 
         except psycopg2.InterfaceError:
-            self.logger.error('Error database interface error checking DB connection')
+            self.logger.debug('Error database interface error checking DB connection.')
 
             # connection failed
             ret_val = False
