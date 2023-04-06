@@ -212,11 +212,6 @@ class PGUtilsMultiConnect:
                 # set the success (or not) flag
                 ret_val = bool(db_version)
 
-        except Exception:
-            self.logger.error('Error general DB connection issue')
-
-            # connection failed
-            ret_val = False
         except psycopg2.DatabaseError:
             self.logger.error('Error database error checking DB connection')
 
@@ -225,6 +220,12 @@ class PGUtilsMultiConnect:
 
         except psycopg2.InterfaceError:
             self.logger.error('Error database interface error checking DB connection')
+
+            # connection failed
+            ret_val = False
+
+        except Exception:
+            self.logger.debug('General DB connection issue. Probably connection time out.')
 
             # connection failed
             ret_val = False
