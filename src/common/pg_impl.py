@@ -93,6 +93,10 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the pulldown data
         pulldown_data = self.exec_sql('apsviz', sql)
 
+        # make sure this is not an array if only one meteorological class is returned
+        if len(pulldown_data) == 1:
+            pulldown_data = pulldown_data[0]
+
         # return the full dataset to the caller
         return pulldown_data
 
