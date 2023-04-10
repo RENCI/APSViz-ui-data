@@ -23,7 +23,7 @@ from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 
 # set the app version
-APP_VERSION = 'v0.3.9'
+APP_VERSION = 'v0.3.10'
 
 # declare the FastAPI details
 APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
@@ -49,7 +49,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
                                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                       advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                      end_date: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
+                                      end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
+                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -77,7 +78,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
 
         # create the param list
         params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
-                        'limit']
+                        'project_code', 'product_type', 'limit']
 
         # loop through the SP params passed in
         for param in params:
@@ -106,7 +107,8 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                                            instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                            storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                            advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                           end_date: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
+                                           end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
+                                           product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
     Returns the json formatted terria map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
@@ -134,7 +136,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
 
     # create the param list
     params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
-                    'limit']
+                    'project_code', 'product_type', 'limit']
 
     # loop through the SP params passed in
     for param in params:
@@ -183,9 +185,6 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
     # init the returned html status code
     status_code: int = 200
 
-    # inti the return value
-    ret_val: dict = {}
-
     try:
         # validate the input. nothing is optional
         if station_name or start_date or end_date:
@@ -201,15 +200,15 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
                 kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
 
             # try to make the call for records
-            ret_val: dict = db_info.get_obs_station_data(**kwargs)
+            station_data: dict = db_info.get_obs_station_data(**kwargs)
 
             # was the call successful
-            if ret_val != -1:
+            if station_data != -1:
                 # start getting the CSV data. first get the columns
-                csv_data = ','.join(list(ret_val[0].keys())) + '\n'
+                csv_data = ','.join(list(station_data[0].keys())) + '\n'
 
                 # now get the data
-                for item in ret_val:
+                for item in station_data:
                     # convert it into CSV
                     csv_data += ','.join([str(x) if x is not None else '' for x in list(item.values())]) + '\n'
 
@@ -243,7 +242,8 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
                             instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                             storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                             advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                            end_date: Union[str, None] = Query(default=None)) -> json:
+                            end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
+                            product_type: Union[str, None] = Query(default=None), psc_output: bool = False) -> json:
     """
     Gets the json formatted UI pulldown data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -256,6 +256,9 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     <br/>&nbsp;&nbsp;&nbsp;advisory_number: Filter by the advisory number
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
+    <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
+    <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
+    <br/>&nbsp;&nbsp;&nbsp;psc_output: True if PSC output format is desired
     """
     # init the returned html status code
     status_code: int = 200
@@ -263,13 +266,15 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     try:
         logger.debug(
             'Input params - grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
-            'run_date: %s, end_date: %s', grid_type, event_type, instance_name, met_class, storm_name, cycle, advisory_number, run_date, end_date)
+            'run_date: %s, end_date: %s, project_code %s, product_type: %s', grid_type, event_type, instance_name, met_class, storm_name, cycle,
+            advisory_number, run_date, end_date, project_code, product_type)
 
         # init the kwargs variable
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date']
+        params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
+                        'project_code', 'product_type']
 
         # loop through the SP params passed in
         for param in params:
@@ -278,6 +283,21 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
         # try to make the call for records
         ret_val: dict = db_info.get_pull_down_data(**kwargs)
+
+        # if PSC output is requested
+        if psc_output:
+            # get the input params into a dict
+            input_data: dict = {'advisory': advisory_number, 'datetime': run_date, 'ensembleMember': event_type, 'mesh': grid_type,
+                                'metric': product_type, 'model': met_class, 'storm': storm_name}
+
+            # collect the choices
+            choices_data: dict = {'model': ('nhc' if met_class == 'tropical' else 'gfs'), 'storm': ret_val[0]['storm_names'],
+                                  'mesh': ret_val[0]['grid_types'], 'advisory': ret_val[0]['advisory_numbers'],
+                                  'ensembleMember': ret_val[0]['event_types'], 'metric': ret_val[0]['product_types']}
+
+            # create a new dict
+            ret_val = {'forcast': input_data, 'choices': choices_data}
+
     except Exception:
         # return a failure message
         ret_val: str = 'Exception detected trying to get the UI pulldown data.'
@@ -291,33 +311,31 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     # return to the caller
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
-
-@APP.get('/get_run_prop_urls', status_code=200, response_model=None)
-async def get_run_prop_urls(source_type: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=''),
-                            end_date: Union[str, None] = Query(default='')) -> json:
-    """
-    Gets the json formatted run properties data.
-    <br/>Note: Leave filtering params empty if not desired.
-    <br/>&nbsp;&nbsp;&nbsp;source_type: Filter by the data source type
-    <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
-    <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date in the form of yyyy-mm-dd
-
-    """
-    # init the returned html status code
-    status_code: int = 200
-
-    try:
-        # try to make the call for records
-        ret_val: dict = db_info.get_run_prop_urls(source_type, run_date, end_date)
-
-    except Exception:  # return a failure message
-        ret_val: str = 'Exception detected trying to get the run properties URL data.'
-
-        # log the exception
-        logger.exception(ret_val)
-
-        # set the status to a server error
-        status_code = 500
-
-    # return to the caller
-    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+# async def get_run_prop_urls(source_type: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=''),
+#                             end_date: Union[str, None] = Query(default='')) -> json:
+#     """
+#     Gets the json formatted run properties data.
+#     <br/>Note: Leave filtering params empty if not desired.
+#     <br/>&nbsp;&nbsp;&nbsp;source_type: Filter by the data source type
+#     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
+#     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date in the form of yyyy-mm-dd
+#
+#     """
+#     # init the returned html status code
+#     status_code: int = 200
+#
+#     try:
+#         # try to make the call for records
+#         ret_val: dict = db_info.get_run_prop_urls(source_type, run_date, end_date)
+#
+#     except Exception:  # return a failure message
+#         ret_val: str = 'Exception detected trying to get the run properties URL data.'
+#
+#         # log the exception
+#         logger.exception(ret_val)
+#
+#         # set the status to a server error
+#         status_code = 500
+#
+#     # return to the caller
+#     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
