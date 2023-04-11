@@ -285,18 +285,18 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
         ret_val: dict = db_info.get_pull_down_data(**kwargs)
 
         # if PSC output is requested
-        if psc_output:
+        if ret_val and psc_output:
             # get the input params into a dict
-            input_data: dict = {'advisory': advisory_number, 'datetime': run_date, 'ensembleMember': event_type, 'mesh': grid_type,
-                                'metric': product_type, 'model': met_class, 'storm': storm_name}
+            forecast_data: dict = {'advisory': advisory_number, 'datetime': run_date, 'ensembleMember': event_type, 'mesh': grid_type,
+                                   'metric': product_type, 'model': met_class, 'storm': storm_name}
 
             # collect the choices
-            choices_data: dict = {'model': ('nhc' if met_class == 'tropical' else 'gfs'), 'storm': ret_val[0]['storm_names'],
-                                  'mesh': ret_val[0]['grid_types'], 'advisory': ret_val[0]['advisory_numbers'],
-                                  'ensembleMember': ret_val[0]['event_types'], 'metric': ret_val[0]['product_types']}
+            choices_data: dict = {'model': ('nhc' if met_class == 'tropical' else 'gfs'), 'storm': ret_val['storm_names'],
+                                  'mesh': ret_val['grid_types'], 'advisory': ret_val['advisory_numbers'], 'ensembleMember': ret_val['event_types'],
+                                  'metric': ret_val['product_types']}
 
-            # create a new dict
-            ret_val = {'forcast': input_data, 'choices': choices_data}
+            # create a new dict for return
+            ret_val = {'forcast': forecast_data, 'choices': choices_data}
 
     except Exception:
         # return a failure message
