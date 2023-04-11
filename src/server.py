@@ -290,17 +290,13 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
             ret_val = 'No data found using the filter criteria selected.'
         # if PSC output is requested
         elif psc_output:
-            # get the input params into a dict
-            forecast_data: dict = {'advisory': advisory_number, 'datetime': run_date, 'ensembleMember': event_type, 'mesh': grid_type,
-                                   'metric': product_type, 'model': met_class, 'storm': storm_name}
-
             # collect the choices
-            choices_data: dict = {'model': ('nhc' if met_class == 'tropical' else 'gfs'), 'storm': ret_val['storm_names'],
+            choices_data: dict = {'model': ['nhc', 'gfs'], 'storm': ret_val['storm_names'],
                                   'mesh': ret_val['grid_types'], 'advisory': ret_val['advisory_numbers'], 'ensembleMember': ret_val['event_types'],
-                                  'metric': ret_val['product_types']}
+                                  'metric': ret_val['product_types'], 'cycle': ret_val['cycles'], 'datetime': ret_val['run_dates']}
 
             # create a new dict for return
-            ret_val = {'forcast': forecast_data, 'choices': choices_data}
+            ret_val = {'choices': choices_data}
 
     except Exception:
         # return a failure message

@@ -87,8 +87,9 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the pull-down data
         sql = f"SELECT public.get_terria_pulldown_data(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
               f"_instance_name:={kwargs['instance_name']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
-              f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']}, _project_code:={kwargs['project_code']}, " \
-              f"_product_type:={kwargs['product_type']});"
+              f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']}, " \
+              f"_run_date:={kwargs['run_date']}, _end_date:={kwargs['end_date']}, " \
+              f"_project_code:={kwargs['project_code']}, _product_type:={kwargs['product_type']});"
 
         # get the pulldown data
         pulldown_data = self.exec_sql('apsviz', sql)
