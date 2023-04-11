@@ -261,6 +261,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     <br/>&nbsp;&nbsp;&nbsp;psc_output: True if PSC output format is desired
     """
     # init the returned html status code
+    ret_val: dict = ''
     status_code: int = 200
 
     try:
@@ -284,8 +285,11 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
         # try to make the call for records
         ret_val: dict = db_info.get_pull_down_data(**kwargs)
 
+        # check the return
+        if ret_val == -1:
+            ret_val = 'No data found using the filter criteria selected.'
         # if PSC output is requested
-        if ret_val and psc_output:
+        elif psc_output:
             # get the input params into a dict
             forecast_data: dict = {'advisory': advisory_number, 'datetime': run_date, 'ensembleMember': event_type, 'mesh': grid_type,
                                    'metric': product_type, 'model': met_class, 'storm': storm_name}
