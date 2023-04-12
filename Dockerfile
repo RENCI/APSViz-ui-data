@@ -12,7 +12,7 @@
 # and runs main which starts the web server
 
 # leverage the renci python base image
-FROM python:3.11.2-slim
+FROM python:3.11.3-slim
 
 # update the image base
 RUN apt-get update && apt-get -y upgrade
