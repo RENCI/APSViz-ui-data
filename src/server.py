@@ -23,7 +23,7 @@ from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 
 # set the app version
-APP_VERSION = 'v0.3.10'
+APP_VERSION = 'v0.3.11'
 
 # declare the FastAPI details
 APP = FastAPI(title='APSVIZ UI Data', version=APP_VERSION)
@@ -301,6 +301,33 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     except Exception:
         # return a failure message
         ret_val: str = 'Exception detected trying to get the UI pulldown data.'
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
+@APP.get('/get_tropical_member_id', status_code=200, response_model=None)
+async def get_tropical_member_id(run_date: Union[str, None] = Query(default=None)) -> json:
+    """
+    Gets the json formatted tropical run IDs for the day.
+
+    <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
+    """
+    # init the returned html status code
+    status_code: int = 200
+
+    try:
+        # try to make the call for records
+        ret_val: dict = db_info.get_tropical_member_id(run_date)
+    except Exception:
+        # return a failure message
+        ret_val: str = 'Exception detected trying to get the get tropical member id list.'
 
         # log the exception
         logger.exception(ret_val)
