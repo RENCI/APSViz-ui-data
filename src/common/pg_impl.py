@@ -46,25 +46,6 @@ class PGImplementation(PGUtilsMultiConnect):
         # clean up connections and cursors
         PGUtilsMultiConnect.__del__(self)
 
-    def get_tropical_member_id(self, run_date):
-        """
-        gets the ids for tropical runs for the date given.
-
-        :return:
-        """
-        # create the sql
-        sql: str = f"SELECT get_tropical_member_id('{run_date}')"
-
-        # get the list of ids
-        tropical_id_list = self.exec_sql('apsviz', sql)
-
-        # no data results in a null returned
-        if tropical_id_list == -1:
-            tropical_id_list = []
-
-        # return the data
-        return tropical_id_list
-
     def get_terria_map_catalog_data(self, **kwargs):
         """
         gets the catalog data for the terria map UI
