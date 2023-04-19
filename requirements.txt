@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MIT
 
 pydantic==1.10.7
-fastapi==0.95.0
+fastapi==0.95.1
 uvicorn==0.21.1
 pyyaml==6.0
 psycopg2-binary==2.9.6
