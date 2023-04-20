@@ -6,16 +6,14 @@
 # SPDX-License-Identifier: MIT
 
 # This Dockerfile is used to build THE apsviz-ui-data python image
-# starts with the python image
-# creates a directory for the repo
-# gets the apsviz-ui-data repo
-# and runs main which starts the web server
 
-# leverage the renci python base image
 FROM python:3.11.3-slim
 
 # update the image base
 RUN apt-get update && apt-get -y upgrade
+
+# update pip
+RUN pip install --upgrade pip
 
 # clear the apt cache
 RUN apt-get clean
