@@ -23,6 +23,12 @@ RUN apt-get clean
 # get some credit
 LABEL maintainer="powen@renci.org"
 
+# get the build argument that has the version
+ARG APP_VERSION=$(APP_VERSION)
+
+# now add the version arg value into a ENV param
+ENV APP_VERSION=$APP_VERSION
+
 # Copy in just the requirements first for caching purposes
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
