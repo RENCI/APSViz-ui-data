@@ -71,7 +71,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
 
-    # init the returned html status code
+    # init the returned data and html status code
+    ret_val: dict = {}
     status_code: int = 200
 
     try:
@@ -88,10 +89,19 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
 
         # try to make the call for records
-        ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
+        ret_val = db_info.get_terria_map_catalog_data(**kwargs)
+
+        # check the return, no data gets a 404 return
+        if ret_val['catalog'] is None:
+            # set a warning message
+            ret_val = {'Warning': "No data found"}
+
+            # set the status to a not found
+            status_code = 404
+
     except Exception:
         # return a failure message
-        ret_val: str = 'Exception detected trying to get the terria map catalog data.'
+        ret_val = {'Exception': 'Error detected trying to get the terria map catalog data.'}
 
         # log the exception
         logger.exception(ret_val)
@@ -161,13 +171,18 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
-        # write out the data to a file
-        with open(temp_file_path, 'w', encoding='utf-8') as f_h:
-            json.dump(ret_val, f_h)
+        # check the return, no catalog data gets not found warning
+        if len(ret_val['catalog']) < 1:
+            # set the status to not found
+            status_code = 404
+        else:
+            # write out the data to a file
+            with open(temp_file_path, 'w', encoding='utf-8') as f_h:
+                json.dump(ret_val, f_h)
 
     except Exception:
         # log the exception
-        logger.exception('')
+        logger.exception('Exception detected on UI data file request.')
 
         # set the status to a server error
         status_code = 500
@@ -186,7 +201,8 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
 
     :return:
     """
-    # init the returned html status code
+    # init the return and html status code
+    ret_val: str = ''
     status_code: int = 200
 
     try:
@@ -221,15 +237,21 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
                 # set the return data
                 ret_val = csv_data
             else:
-                # set the Warning message
-                ret_val = 'Error executing query - No data or error detected collecting data.'
+                # set the Warning message and the return status
+                ret_val = 'Error - No data or error collecting data.'
+
+                # set the status to a not found
+                status_code = 404
         else:
             # set the error message
-            ret_val = 'Error invalid input - Insure that all input fields are populated.'
+            ret_val = 'Error Invalid input. Insure that all input fields are populated.'
+
+            # set the status to a not found
+            status_code = 404
 
     except Exception:
         # return a failure message
-        ret_val: str = 'Exception - Error detected trying to get station data.'
+        ret_val = 'Exception detected trying to get station data.'
 
         # log the exception
         logger.exception(ret_val)
@@ -264,8 +286,8 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;psc_output: True if PSC output format is desired
     """
-    # init the returned html status code
-    ret_val: dict = ''
+    # init the returned data and html status code
+    ret_val: dict = {}
     status_code: int = 200
 
     try:
@@ -291,7 +313,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
         # check the return
         if ret_val == -1:
-            ret_val = 'No data found using the filter criteria selected.'
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
         # if PSC output is requested
         elif psc_output:
             # collect the choices
@@ -304,7 +326,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
     except Exception:
         # return a failure message
-        ret_val: str = 'Exception detected trying to get the UI pulldown data.'
+        ret_val = {'Error': 'Exception detected trying to get the UI pulldown data.'}
 
         # log the exception
         logger.exception(ret_val)
@@ -314,32 +336,3 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
     # return to the caller
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
-
-# async def get_run_prop_urls(source_type: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=''),
-#                             end_date: Union[str, None] = Query(default='')) -> json:
-#     """
-#     Gets the json formatted run properties data.
-#     <br/>Note: Leave filtering params empty if not desired.
-#     <br/>&nbsp;&nbsp;&nbsp;source_type: Filter by the data source type
-#     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
-#     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date in the form of yyyy-mm-dd
-#
-#     """
-#     # init the returned html status code
-#     status_code: int = 200
-#
-#     try:
-#         # try to make the call for records
-#         ret_val: dict = db_info.get_run_prop_urls(source_type, run_date, end_date)
-#
-#     except Exception:  # return a failure message
-#         ret_val: str = 'Exception detected trying to get the run properties URL data.'
-#
-#         # log the exception
-#         logger.exception(ret_val)
-#
-#         # set the status to a server error
-#         status_code = 500
-#
-#     # return to the caller
-#     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
