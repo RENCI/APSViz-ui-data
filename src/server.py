@@ -63,6 +63,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     <br/>&nbsp;&nbsp;&nbsp;advisory_number: Filter by the advisory number
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
+    <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
+    <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
     """
     # pylint: disable=unused-argument
@@ -122,6 +124,8 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;advisory_number: Filter by the advisory number
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
+    <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
+    <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
     """
     # pylint: disable=unused-argument
