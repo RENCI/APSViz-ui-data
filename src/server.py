@@ -94,7 +94,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         # check the return, no data gets a 404 return
         if ret_val['catalog'] is None:
             # set a warning message
-            ret_val = {'Warning': "No data found"}
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
             # set the status to a not found
             status_code = 404
@@ -172,13 +172,16 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
         # check the return, no catalog data gets not found warning
-        if len(ret_val['catalog']) < 1:
-            # set the status to not found
+        if ret_val['catalog'] is None :
+            # set a warning message
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+
+            # set the status to a not found
             status_code = 404
-        else:
-            # write out the data to a file
-            with open(temp_file_path, 'w', encoding='utf-8') as f_h:
-                json.dump(ret_val, f_h)
+
+        # write out the data to a file
+        with open(temp_file_path, 'w', encoding='utf-8') as f_h:
+            json.dump(ret_val, f_h)
 
     except Exception:
         # log the exception
@@ -238,7 +241,7 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
                 ret_val = csv_data
             else:
                 # set the Warning message and the return status
-                ret_val = 'Error - No data or error collecting data.'
+                ret_val = 'Warning: No data found using the filter criteria selected.'
 
                 # set the status to a not found
                 status_code = 404
