@@ -50,7 +50,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                       advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
                                       end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
+                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -65,7 +65,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
-    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
+    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
     """
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
@@ -120,7 +120,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                                            storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                            advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
                                            end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                           product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
+                                           product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7)) -> json:
     """
     Returns the json formatted terria map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
@@ -136,7 +136,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
-    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned (default is 4)
+    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
     """
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
@@ -172,7 +172,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
         # check the return, no catalog data gets not found warning
-        if ret_val['catalog'] is None :
+        if ret_val['catalog'] is None:
             # set a warning message
             ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
@@ -266,6 +266,59 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
     return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/plain")
 
 
+@APP.get('/get_catalog_member_records', status_code=200, response_model=None)
+async def get_catalog_member_records(run_id: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
+                                     limit: Union[int, None] = Query(default=4)) -> json:
+    """
+    Gets the json formatted catalog member data.
+    <br/>Note: Leave filtering params empty if not desired.
+    <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the name of the ASGS grid. Leaving this empty will result in getting the latest <limit> records.
+    <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code.
+    <br/>&nbsp;&nbsp;&nbsp;limit: limit the number of records returned. only applicable when run_id is empty.
+    """
+    # init the returned data and html status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:
+        logger.debug('Input params - run_id: %s, project_code: %s, limit: %s', run_id, project_code, limit)
+
+        # init the kwargs variable
+        kwargs: dict = {}
+
+        # create the param list
+        params: list = ['run_id', 'project_code', 'limit']
+
+        # if we get a run id add on a wildcard for the search
+        if run_id is not None:
+            run_id += '%'
+
+        # loop through the SP params passed in
+        for param in params:
+            # add this parm to the list
+            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # try to make the call for records
+        ret_val: dict = db_info.get_catalog_member_records(**kwargs)
+
+        # check the return
+        if ret_val == -1:
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Error': 'Exception detected trying to get the catalog member data.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
 @APP.get('/get_pulldown_data', status_code=200, response_model=None)
 async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                             instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
@@ -320,8 +373,8 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
         # if PSC output is requested
         elif psc_output:
             # collect the choices
-            choices_data: dict = {'model': ['nhc', 'gfs'], 'storm': ret_val['storm_names'],
-                                  'mesh': ret_val['grid_types'], 'advisory': ret_val['advisory_numbers'], 'ensembleMember': ret_val['event_types'],
+            choices_data: dict = {'model': ['nhc', 'gfs'], 'storm': ret_val['storm_names'], 'mesh': ret_val['grid_types'],
+                                  'advisory': ret_val['advisory_numbers'], 'ensembleMember': ret_val['event_types'],
                                   'metric': ret_val['product_types'], 'cycle': ret_val['cycles'], 'datetime': ret_val['run_dates']}
 
             # create a new dict for return

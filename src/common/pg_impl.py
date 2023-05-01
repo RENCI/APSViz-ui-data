@@ -50,6 +50,7 @@ class PGImplementation(PGUtilsMultiConnect):
         """
         gets the catalog data for the terria map UI
 
+        :param **kwargs
         :return:
         """
         # init the return
@@ -121,24 +122,23 @@ class PGImplementation(PGUtilsMultiConnect):
         # return the data
         return observations_list
 
-    def get_run_prop_urls(self, source_type, run_date, end_date) -> dict:
+    def get_catalog_member_records(self, **kwargs) -> dict:
         """
-        gets the image urls in the run props for a source type (ASGS, ECFLOW, etc.
+        gets the apsviz catalog member record for the run id and project code passed. the SP default
+        record count returned can be overridden.
 
-        :param source_type:
-        :param run_date:
-        :param end_date:
+        :param **kwargs
         :return:
         """
-
         # init the return
         ret_val: dict = {}
 
-        # create the sql
-        sql: str = f"SELECT public.get_run_prop_urls(_source_type := '{source_type}', _run_date := '{run_date}', _end_date := '{end_date}');"
+        # create the sql. note we are appending a '%' wildcard to get all products for this run
+        sql: str = f"SELECT public.get_catalog_member_records(_run_id := {kwargs['run_id']}, _project_code := {kwargs['project_code']}, " \
+                   f"_limit := {kwargs['limit']});"
 
         # get the layer list
-        ret_val = self.exec_sql('asgs', sql)
+        ret_val = self.exec_sql('apsviz', sql)
 
         # return the data
         return ret_val
