@@ -35,7 +35,7 @@ class PGImplementation(PGUtilsMultiConnect):
             self.logger = LoggingUtil.init_logging("APSViz.UI-data.PGImplementation", level=log_level, line_format='medium', log_file_path=log_path)
 
         # init the base class
-        PGUtilsMultiConnect.__init__(self, 'APSViz.Settings', db_names, _logger=self.logger, _auto_commit=_auto_commit)
+        PGUtilsMultiConnect.__init__(self, 'APSViz.UI-data.PGImplementation', db_names, _logger=self.logger, _auto_commit=_auto_commit)
 
     def __del__(self):
         """
