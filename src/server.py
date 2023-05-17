@@ -304,6 +304,17 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
         # check the return
         if ret_val == -1:
             ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+        else:
+            # did we get everything expected
+            if ret_val is not None and ret_val['catalogs'] is not None and ret_val['past_runs'] is not None:
+                # remove non-PSC catalog items
+                ret_val = filter_catalog_past_runs(ret_val)
+            else:
+                # return a failure message
+                ret_val = {'Error': 'Exception detected trying to get the catalog member data.'}
+
+                # set the status to a data not found error
+                status_code = 404
 
     except Exception:
         # return a failure message
@@ -392,3 +403,20 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
     # return to the caller
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
+def filter_catalog_past_runs(catalog_data: dict) -> dict:
+    """
+    filters out the non-PSC past run data
+
+    :param catalog_data:
+    :return:
+    """
+    # get the PSC project list
+    psc_sync_projects: list = os.environ.get('PSC_SYNC_PROJECTS').split(',')
+
+    # filter out non-PSC data from the past_runs
+    catalog_data['past_runs'] = list(filter(lambda item: (item['project_code'] in psc_sync_projects), catalog_data['past_runs']))
+
+    # return to the caller
+    return catalog_data
