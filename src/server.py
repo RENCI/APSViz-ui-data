@@ -306,7 +306,7 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
             ret_val = {'Warning': 'No data found using the filter criteria selected.'}
         else:
             # did we get everything expected
-            if ret_val is not None and ret_val['catalogs'] is not None and ret_val['past_runs'] is not None:
+            if ret_val is not None and ret_val['catalogs'] is not None:
                 # remove non-PSC catalog items
                 ret_val = filter_catalog_past_runs(ret_val)
             else:
@@ -412,11 +412,13 @@ def filter_catalog_past_runs(catalog_data: dict) -> dict:
     :param catalog_data:
     :return:
     """
-    # get the PSC project list
-    psc_sync_projects: list = os.environ.get('PSC_SYNC_PROJECTS').split(',')
+    # make sure we have something to filter
+    if catalog_data['past_runs'] is not None:
+        # get the PSC project list
+        psc_sync_projects: list = os.environ.get('PSC_SYNC_PROJECTS').split(',')
 
-    # filter out non-PSC data from the past_runs
-    catalog_data['past_runs'] = list(filter(lambda item: (item['project_code'] in psc_sync_projects), catalog_data['past_runs']))
+        # filter out non-PSC data from the past_runs
+        catalog_data['past_runs'] = list(filter(lambda item: (item['project_code'] in psc_sync_projects), catalog_data['past_runs']))
 
     # return to the caller
     return catalog_data
