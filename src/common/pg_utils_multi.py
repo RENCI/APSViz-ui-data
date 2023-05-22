@@ -195,7 +195,7 @@ class PGUtilsMultiConnect:
         try:
             # is there an existing connection
             if not db_info.conn:
-                self.logger.warning('Existing DB connection not found for %s', db_info.name)
+                self.logger.debug('Existing DB connection not found for %s', db_info.name)
 
                 # force getting a new connection
                 ret_val = False
