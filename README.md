@@ -15,7 +15,7 @@ Website/services that return data used to populate the APSViz TerriaMap UI.
 [![RENCI License](https://img.shields.io/badge/License-RENCI-blue.svg)](https://renci.org/)
 #### Components and versions...
 [![Python](https://img.shields.io/badge/Python-3.11.3-orange)](https://github.com/PyCQA/pylint)
-[![Linting Pylint](https://img.shields.io/badge/Pylint-%202.17.3-yellowgreen)](https://github.com/PyCQA/pylint)
+[![Linting Pylint](https://img.shields.io/badge/Pylint-%202.17.4-yellowgreen)](https://github.com/PyCQA/pylint)
 #### Build status..
 [![PyLint the codebase](https://github.com/RENCI/apsviz-ui-data/actions/workflows/pylint.yml/badge.svg)](https://github.com/RENCI/apsviz-ui-data/actions/workflows/pylint.yml)
 [![Build and push the Docker image](https://github.com/RENCI/apsviz-ui-data/actions/workflows/image-push.yml/badge.svg)](https://github.com/RENCI/apsviz-ui-data/actions/workflows/image-push.yml)
