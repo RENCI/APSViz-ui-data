@@ -12,12 +12,14 @@
 import json
 import os
 import uuid
+import shutil
 
 from typing import Union
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse
+from starlette.background import BackgroundTask
 
 from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
@@ -91,8 +93,14 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         # try to make the call for records
         ret_val = db_info.get_terria_map_catalog_data(**kwargs)
 
+        # check the return
+        if ret_val == -1:
+            ret_val = {'Error': 'Database error getting catalog member data.'}
+
+            # set the status to a not found
+            status_code = 500
         # check the return, no data gets a 404 return
-        if ret_val['catalog'] is None:
+        elif ret_val['catalog'] is None:
             # set a warning message
             ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
@@ -165,12 +173,18 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     os.makedirs(temp_file_path)
 
     # append the file name
-    temp_file_path: str = os.path.join(temp_file_path, file_name)
+    file_path: str = os.path.join(temp_file_path, file_name)
 
     try:
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
+        # check the return
+        if ret_val == -1:
+            ret_val = {'Error': 'Database error getting catalog member data.'}
+
+            # set the status to a not found
+            status_code = 500
         # check the return, no catalog data gets not found warning
         if ret_val['catalog'] is None:
             # set a warning message
@@ -180,7 +194,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
             status_code = 404
 
         # write out the data to a file
-        with open(temp_file_path, 'w', encoding='utf-8') as f_h:
+        with open(file_path, 'w', encoding='utf-8') as f_h:
             json.dump(ret_val, f_h)
 
     except Exception:
@@ -191,7 +205,18 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
         status_code = 500
 
     # return to the caller
-    return FileResponse(path=temp_file_path, filename=file_name, media_type='text/json', status_code=status_code)
+    return FileResponse(path=file_path, filename=file_name, media_type='text/json', status_code=status_code,
+                        background=BackgroundTask(cleanup, temp_file_path))
+
+
+def cleanup(file_path: str):
+    """
+    removes the directory from the file system
+
+    :param file_path:
+    :return:
+    """
+    shutil.rmtree(file_path)
 
 
 @APP.get('/get_obs_station_data', status_code=200, response_model=None, response_class=PlainTextResponse)
@@ -303,7 +328,10 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
 
         # check the return
         if ret_val == -1:
-            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+            ret_val = {'Error': 'Database error getting catalog member data.'}
+
+            # set the status to a server error
+            status_code = 500
         else:
             # did we get everything expected
             if ret_val is not None and ret_val['catalogs'] is not None:
@@ -311,7 +339,7 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
                 ret_val = filter_catalog_past_runs(ret_val)
             else:
                 # return a failure message
-                ret_val = {'Error': 'Exception detected trying to get the catalog member data.'}
+                ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
                 # set the status to a data not found error
                 status_code = 404
@@ -380,7 +408,10 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
         # check the return
         if ret_val == -1:
-            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+            ret_val = {'Error': 'Database error getting pulldown data.'}
+
+            # set the status to a server error
+            status_code = 500
         # if PSC output is requested
         elif psc_output:
             # collect the choices
