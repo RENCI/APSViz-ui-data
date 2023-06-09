@@ -112,7 +112,7 @@ class PGUtilsMultiConnect:
         # insure the env parameter prefix is uppercase
         db_name: str = db_name.upper()
 
-        # get configuration params from the env params
+        # get the database configuration params from the environment
         user: str = os.environ.get(f'{db_name}_DB_USERNAME')
         password: str = os.environ.get(f'{db_name}_DB_PASSWORD')
         dbname: str = os.environ.get(f'{db_name}_DB_DATABASE')
