@@ -5,8 +5,8 @@
 # SPDX-License-Identifier: LicenseRef-RENCI
 # SPDX-License-Identifier: MIT
 
-pydantic==1.10.8
-fastapi==0.95.2
+pydantic==1.10.9
+fastapi==0.97.0
 uvicorn==0.22.0
 pyyaml==6.0
 psycopg2-binary==2.9.6
