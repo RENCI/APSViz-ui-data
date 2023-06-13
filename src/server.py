@@ -219,9 +219,9 @@ def cleanup(file_path: str):
     shutil.rmtree(file_path)
 
 
-@APP.get('/get_obs_station_data', status_code=200, response_model=None, response_class=PlainTextResponse)
-def get_obs_station_data(station_name: Union[str, None] = Query(default=None), start_date: Union[str, None] = Query(default=None),
-                         end_date: Union[str, None] = Query(default=None)) -> PlainTextResponse:
+@APP.get('/get_station_data', status_code=200, response_model=None, response_class=PlainTextResponse)
+def get_station_data(station_name: Union[str, None] = Query(default=None), time_mark: Union[str, None] = Query(default=None),
+                     data_source: Union[str, None] = Query(default=None)) -> PlainTextResponse:
     """
     Returns the CSV formatted observational station.
 
@@ -235,38 +235,25 @@ def get_obs_station_data(station_name: Union[str, None] = Query(default=None), s
 
     try:
         # validate the input. nothing is optional
-        if station_name or start_date or end_date:
+        if station_name or time_mark or data_source:
             # init the kwargs variable
             kwargs: dict = {}
 
             # create the param list
-            params: list = ['station_name', 'start_date', 'end_date']
+            params: list = ['station_name', 'time_mark', 'data_source']
 
             # loop through the SP params passed in
             for param in params:
                 # add this parm to the list
-                kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+                kwargs.update({param: 'null' if not locals()[param] else f'{locals()[param]}'})
 
             # try to make the call for records
-            station_data: dict = db_info.get_obs_station_data(**kwargs)
+            ret_val: str = db_info.get_station_data(**kwargs)
 
             # was the call successful
-            if station_data != -1:
-                # start getting the CSV data. first get the columns
-                csv_data = ','.join(list(station_data[0].keys())) + '\n'
-
-                # now get the data
-                for item in station_data:
-                    # convert it into CSV
-                    csv_data += ','.join([str(x) if x is not None else '' for x in list(item.values())]) + '\n'
-
-                logger.debug('Output data: %s', csv_data)
-
-                # set the return data
-                ret_val = csv_data
-            else:
+            if len(ret_val) == 0:
                 # set the Warning message and the return status
-                ret_val = 'Warning: No data found using the filter criteria selected.'
+                ret_val = 'Warning: No station data found using the criteria selected.'
 
                 # set the status to a not found
                 status_code = 404
