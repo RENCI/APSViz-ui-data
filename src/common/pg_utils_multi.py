@@ -99,7 +99,7 @@ class PGUtilsMultiConnect:
                 # close it
                 conn.close()
         except Exception:
-            self.logger.error('Error detected closing the %s DB connection.', db_name)
+            self.logger.warning('Error detected closing the %s DB connection.', db_name)
 
     @staticmethod
     def get_conn_config(db_name: str) -> str:
