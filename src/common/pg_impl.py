@@ -117,9 +117,9 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # create the sql. note we are appending a '%' wildcard to get all products for this run
+        # create the sql
         sql: str = f"SELECT public.get_catalog_member_records(_run_id := {kwargs['run_id']}, _project_code := {kwargs['project_code']}, " \
-                   f"_limit := {kwargs['limit']});"
+                   f"_filter_event_type := {kwargs['filter_event_type']}, _limit := {kwargs['limit']});"
 
         # get the layer list
         ret_val = self.exec_sql('apsviz', sql)

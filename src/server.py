@@ -280,12 +280,13 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
 
 @APP.get('/get_catalog_member_records', status_code=200, response_model=None)
 async def get_catalog_member_records(run_id: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                     limit: Union[int, None] = Query(default=4)) -> json:
+                                     filter_event_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
     Gets the json formatted catalog member data.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the name of the ASGS grid. Leaving this empty will result in getting the latest <limit> records.
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code.
+    <br/>&nbsp;&nbsp;&nbsp;filter_event_type: Filter out records by event type.
     <br/>&nbsp;&nbsp;&nbsp;limit: limit the number of records returned. only applicable when run_id is empty.
     """
     # init the returned data and html status code
@@ -293,13 +294,13 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
     status_code: int = 200
 
     try:
-        logger.debug('Input params - run_id: %s, project_code: %s, limit: %s', run_id, project_code, limit)
+        logger.debug('Input params - run_id: %s, project_code: %s, filter_event_type: %s, limit: %s', run_id, project_code, filter_event_type, limit)
 
         # init the kwargs variable
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['run_id', 'project_code', 'limit']
+        params: list = ['run_id', 'project_code', 'filter_event_type', 'limit']
 
         # if we get a run id add on a wildcard for the search
         if run_id is not None:
