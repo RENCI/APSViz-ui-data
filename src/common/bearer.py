@@ -26,7 +26,7 @@ class JWTBearer(HTTPBearer):
         self.sec = sec
 
         # call the superclass to init
-        super(JWTBearer, self).__init__(auto_error=auto_error)
+        super().__init__(auto_error=auto_error)
 
     async def __call__(self, request: Request):
         """
@@ -36,7 +36,7 @@ class JWTBearer(HTTPBearer):
         :return:
         """
         # get the JWT Bearer token from the request
-        auth: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
+        auth: HTTPAuthorizationCredentials = await super().__call__(request)
 
         # if we got the bearer creds
         if auth:
