@@ -15,7 +15,7 @@ import os
 import requests
 import pytest
 
-from src.common.security import Security, BearerSchema
+from src.common.security import Security
 
 
 def test_sign_jwt():
