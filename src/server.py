@@ -12,17 +12,19 @@
 import json
 import os
 import uuid
-import shutil
 
 from typing import Union
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse
 from starlette.background import BackgroundTask
 
 from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
+from src.common.security import Security
+from src.common.bearer import JWTBearer
+from src.common.utils import GenUtils
 
 # set the app version
 app_version = os.getenv('APP_VERSION', 'Version number not set')
@@ -45,9 +47,87 @@ db_name: tuple = ('apsviz', 'apsviz_gauges', 'asgs')
 # create a DB connection object
 db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 
+# create a Security object
+security = Security()
+
 
 @APP.get('/get_ui_data', status_code=200, response_model=None)
 async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
+                                      instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
+                                      storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
+                                      advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
+                                      end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
+                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7)) -> json:
+    """
+    Gets the json formatted terria map UI catalog data.
+    <br/>Note: Leave filtering params empty if not desired.
+    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ASGS grid
+    <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
+    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
+    <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
+    <br/>&nbsp;&nbsp;&nbsp;storm_name: Filter by the storm name
+    <br/>&nbsp;&nbsp;&nbsp;cycle: Filter by the cycle
+    <br/>&nbsp;&nbsp;&nbsp;advisory_number: Filter by the advisory number
+    <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
+    <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
+    <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
+    <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
+    <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-locals
+
+    # init the returned data and html status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:
+        # init the kwargs variable
+        kwargs: dict = {}
+
+        # create the param list
+        params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
+                        'project_code', 'product_type', 'limit']
+
+        # loop through the SP params passed in
+        for param in params:
+            # add this parm to the list
+            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # try to make the call for records
+        ret_val = db_info.get_terria_map_catalog_data(**kwargs)
+
+        # check the return
+        if ret_val == -1:
+            ret_val = {'Error': 'Database error getting catalog member data.'}
+
+            # set the status to a not found
+            status_code = 500
+        # check the return, no data gets a 404 return
+        elif ret_val['catalog'] is None:
+            # set a warning message
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+
+            # set the status to a not found
+            status_code = 404
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Exception': 'Error detected trying to get the terria map catalog data.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
+@APP.get('/get_ui_data_secure', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                       advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
@@ -206,17 +286,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
 
     # return to the caller
     return FileResponse(path=file_path, filename=file_name, media_type='text/json', status_code=status_code,
-                        background=BackgroundTask(cleanup, temp_file_path))
-
-
-def cleanup(file_path: str):
-    """
-    removes the directory from the file system
-
-    :param file_path:
-    :return:
-    """
-    shutil.rmtree(file_path)
+                        background=BackgroundTask(GenUtils.cleanup, temp_file_path))
 
 
 @APP.get('/get_station_data', status_code=200, response_model=None, response_class=PlainTextResponse)
@@ -324,7 +394,7 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
             # did we get everything expected
             if ret_val is not None and ret_val['catalogs'] is not None:
                 # remove non-PSC catalog items
-                ret_val = filter_catalog_past_runs(ret_val)
+                ret_val = GenUtils.filter_catalog_past_runs(ret_val)
             else:
                 # return a failure message
                 ret_val = {'Warning': 'No data found using the filter criteria selected.'}
@@ -422,22 +492,3 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
 
     # return to the caller
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
-
-
-def filter_catalog_past_runs(catalog_data: dict) -> dict:
-    """
-    filters out the non-PSC past run data
-
-    :param catalog_data:
-    :return:
-    """
-    # make sure we have something to filter
-    if catalog_data['past_runs'] is not None:
-        # get the PSC project list
-        psc_sync_projects: list = os.environ.get('PSC_SYNC_PROJECTS').split(',')
-
-        # filter out non-PSC data from the past_runs
-        catalog_data['past_runs'] = list(filter(lambda item: (item['project_code'] in psc_sync_projects), catalog_data['past_runs']))
-
-    # return to the caller
-    return catalog_data
