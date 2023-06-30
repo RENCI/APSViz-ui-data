@@ -12,5 +12,5 @@ pyyaml==6.0
 psycopg2-binary==2.9.6
 pylint==2.17.4
 pandas
-numpy==1.25.0
+numpy
 pyjwt==2.7.0
