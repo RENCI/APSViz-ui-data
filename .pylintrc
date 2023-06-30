@@ -13,3 +13,4 @@ max-args=15
 max-locals=20
 min-public-methods=0
 fail-under=9.5
+extension-pkg-allow-list=pydantic
