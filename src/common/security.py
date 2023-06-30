@@ -77,9 +77,7 @@ class Security:
                     decoded_token['bearer_secret'] == self.bearer_secret:
                 ret_val = True
 
-        except Exception as e:
-            print(e)
-
+        except Exception:
             # trap a decode error
             ret_val = False
 
