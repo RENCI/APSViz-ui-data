@@ -7,21 +7,38 @@
 
 name: PyLint the codebase
 
+# trigger event is a push to the main repo branch (or a manual launch)
 on:
   workflow_dispatch:
   push:
     branches:
     - main
 
+# job definitions
 jobs:
   run_pylint:
-    runs-on: ubuntu-latest
     name: Execute pylint
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
 
-      - name: Python Pylint GitHub Action
-        uses: fylein/python-pylint-github-action@v1
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
-          args: pip3 install -r requirements.txt && pylint --rcfile=.pylintrc --recursive=y ./
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Pylint the codebase
+        run: |
+          pylint --rcfile=.pylintrc --recursive=y ./
