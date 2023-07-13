@@ -128,11 +128,13 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
 
 @APP.get('/get_ui_data_secure', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
-                                      instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                      storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
-                                      advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                      end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7)) -> json:
+                                             instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
+                                             storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
+                                             advisory_number: Union[str, None] = Query(default=None),
+                                             run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
+                                             project_code: Union[str, None] = Query(default=None),
+                                             product_type: Union[str, None] = Query(default=None),
+                                             limit: Union[int, None] = Query(default=7)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -149,15 +151,16 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
     """
-    # pylint: disable=unused-argument
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-locals
-
     # init the returned data and html status code
     ret_val: dict = {}
     status_code: int = 200
 
     try:
+        logger.debug(
+            'Input params - grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
+            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s', grid_type, event_type, instance_name, met_class, storm_name,
+            cycle, advisory_number, run_date, end_date, project_code, product_type, limit)
+
         # init the kwargs variable
         kwargs: dict = {}
 
