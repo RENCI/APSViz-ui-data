@@ -76,7 +76,7 @@ def test_access():
     # create a security object
     sec = Security()
 
-    # create a pyload for the token generation
+    # create a payload for the token generation
     payload = {'bearer_name': os.environ.get("BEARER_NAME"), 'bearer_secret': os.environ.get("BEARER_SECRET")}
 
     # create a new token
