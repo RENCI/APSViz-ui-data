@@ -138,7 +138,7 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
-    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ASGS grid
+    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
@@ -216,7 +216,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     Returns the json formatted terria map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;file_name: The name of the output file (default is apsviz.json)
-    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ASGS grid
+    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
