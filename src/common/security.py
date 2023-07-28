@@ -27,7 +27,7 @@ class BearerSchema(BaseModel):
         """
         an example usage of the model
         """
-        schema_extra = {"bearer_name": "SomeBearerName", "bearer_secret": "SomeBearerSecret"}
+        json_schema_extra = {"bearer_name": "SomeBearerName", "bearer_secret": "SomeBearerSecret"}
 
 
 class Security:
