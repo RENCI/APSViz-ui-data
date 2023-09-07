@@ -306,6 +306,7 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
     ret_val: str = ''
     status_code: int = 200
 
+    # example input - station name: 8651370, timemark: 2023-08-24T00:00:00, data_source: GFSFORECAST_WNAT_53K_V1.0
     try:
         # validate the input. nothing is optional
         if station_name or time_mark or data_source:
