@@ -7,7 +7,7 @@
 
 # This Dockerfile is used to build THE apsviz-ui-data python image
 
-FROM python:3.11.4-slim
+FROM python:3.11.5-slim
 
 # update the image base
 RUN apt-get update && apt-get -y upgrade
