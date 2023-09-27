@@ -57,7 +57,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                       advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
                                       end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7)) -> json:
+                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
+                                      use_new_wb: Union[bool, None] = Query(default=False)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -73,6 +74,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
+    <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     """
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
@@ -94,6 +96,9 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         for param in params:
             # add this parm to the list
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # add in the new workbench retrieval flag
+        kwargs.update({'use_new_wb': use_new_wb})
 
         # try to make the call for records
         ret_val = db_info.get_terria_map_catalog_data(**kwargs)
@@ -126,6 +131,76 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
+@APP.get('/get_catalog_workbench', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
+                                physical_location: Union[str, None] = Query(default=None), ensemble_name: Union[str, None] = Query(default=None),
+                                project_code: Union[str, None] = Query(default=None), max_age: int = Query(default=1)) -> json:
+    """
+    Gets the latest workbench
+    <br/>Note: Leave filtering params empty if not desired.
+
+    <br/>&nbsp;&nbsp;&nbsp;insertion_date: The timestamp the run props were inserted into the database
+    <br/>&nbsp;&nbsp;&nbsp;met_class: The meteorological class (synoptic or tropical)
+    <br/>&nbsp;&nbsp;&nbsp;physical_location: The site that made the request (RENCI, PSC, etc.)
+    <br/>&nbsp;&nbsp;&nbsp;ensemble_name: The type of run (gfsforecast, nowcast, ofcl, etc.)
+    <br/>&nbsp;&nbsp;&nbsp;project_code: The requesting project code (ecflow_test_renci, ncf, nopp, test, unc-crc, etc.)
+    <br/>&nbsp;&nbsp;&nbsp;max_age: The maximum age of a tropical run in days.
+
+    :return:
+    """
+    # init the returned data and html status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:
+        logger.debug('Input params - insertion_date: %s, met_class: %s, physical_location: %s, ensemble_name: %s, project_code: %s, max_age: %s',
+                     insertion_date, met_class, physical_location, ensemble_name, project_code, max_age)
+
+        # init the kwargs variable
+        kwargs: dict = {}
+
+        # create the param list
+        params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
+
+        # loop through the SP params passed in
+        for param in params:
+            # add this parm to the list
+            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # add in the max age int
+        kwargs.update({'max_age': max_age})
+
+        # try to make the call for records
+        ret_val = db_info.get_terria_map_workbench_data(**kwargs)
+
+        # check the return
+        if ret_val == -1:
+            ret_val = {'Error': 'Database error getting catalog workbench data.'}
+
+            # set the status to a not found
+            status_code = 500
+        # check the return, no data gets a 404 return
+        elif len(ret_val) == 0:
+            # set a warning message
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+
+            # set the status to a not found
+            status_code = 404
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Exception': 'Error detected trying to get the terria map catalog workbench data.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
 @APP.get('/get_ui_data_secure', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                                              instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
@@ -134,7 +209,8 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
                                              run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
                                              project_code: Union[str, None] = Query(default=None),
                                              product_type: Union[str, None] = Query(default=None),
-                                             limit: Union[int, None] = Query(default=7)) -> json:
+                                             limit: Union[int, None] = Query(default=7),
+                                             use_new_wb: Union[bool, None] = Query(default=False)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -150,6 +226,7 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
+    <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     """
     # init the returned data and html status code
     ret_val: dict = {}
@@ -172,6 +249,9 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
         for param in params:
             # add this parm to the list
             kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # add in the new workbench retrieval flag
+        kwargs.update({'use_new_wb': use_new_wb})
 
         # try to make the call for records
         ret_val = db_info.get_terria_map_catalog_data(**kwargs)
@@ -211,7 +291,8 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                                            storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                            advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
                                            end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                           product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7)) -> json:
+                                           product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
+                                           use_new_wb: Union[bool, None] = Query(default=False)) -> json:
     """
     Returns the json formatted terria map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
@@ -228,6 +309,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
+    <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     """
     # pylint: disable=unused-argument
     # pylint: disable=too-many-arguments
@@ -247,6 +329,9 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     for param in params:
         # add this parm to the list
         kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+    # add in the new workbench retrieval flag
+    kwargs.update({'use_new_wb': use_new_wb})
 
     # get a file path to the temp file directory.
     # append a unique path to avoid collisions

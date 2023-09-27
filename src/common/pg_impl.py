@@ -10,7 +10,9 @@
 
     Author: Phil Owen, RENCI.org
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+import dateutil.parser
+import pytz
 import pandas as pd
 import numpy as np
 
@@ -50,6 +52,66 @@ class PGImplementation(PGUtilsMultiConnect):
         # clean up connections and cursors
         PGUtilsMultiConnect.__del__(self)
 
+    def get_terria_map_workbench_data(self, **kwargs):
+        """
+        Gets the catalog workbench data
+
+        :param kwargs:
+        :return:
+        """
+        # init the return
+        ret_val: dict = {}
+
+        # create the sql to get the latest runs for the workbench lookup
+        sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
+                   f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, _project_code:=" \
+                   f"{kwargs['project_code']})"
+
+        # get the max age
+        max_age: int = int(kwargs['max_age'])
+
+        # get the layer list
+        ret_val = self.exec_sql('asgs', sql)
+
+        # check the return
+        if ret_val == -1:
+            ret_val = {'Error': 'Database error getting catalog workbench data.'}
+        # check the return, no data gets a 404 return
+        elif len(ret_val) == 0 or ret_val is None:
+            # set a warning message
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+        else:
+            # for each of the entries returned
+            for item in ret_val:
+                # interrogate the results we are looking to get this down to the latest relevant tropical run
+                # or the latest synoptic run catalog member.
+
+                # is there a tropical run and is it too old to display
+                if item['met_class'] == 'tropical':
+                    # get the number of days from the last tropical run to now
+                    insertion_date = dateutil.parser.parse(item['insertion_date'])
+                    date_diff = pytz.utc.localize(datetime.utcnow()) - insertion_date
+
+                    # is this young enough
+                    if date_diff.days < max_age:
+                        # save the run id
+                        run_id = f"{item['instance_id']}-{item['uid']}%"
+
+                        # no need to continue
+                        break
+                elif item['met_class'] == 'synoptic':
+                    # save the run id
+                    run_id = f"{item['instance_id']}-{item['uid']}%"
+
+            # get the catalog members for the run using the id
+            sql = f"SELECT public.get_catalog_workbench(_run_id:='{run_id}')"
+
+            # get the layer list
+            ret_val = self.exec_sql('apsviz', sql)
+
+        # return the data
+        return ret_val
+
     def get_terria_map_catalog_data(self, **kwargs):
         """
         gets the catalog data for the terria map UI
@@ -70,11 +132,59 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the layer list
         ret_val = self.exec_sql('apsviz', sql)
 
-        # get the pull-down data using the above filtering mechanisms
-        pulldown_data: dict = self.get_pull_down_data(**kwargs)
+        # check the return
+        if ret_val == -1:
+            ret_val = {'Error': 'Database error getting catalog workbench data.'}
+        # check the return, no data gets a 404 return
+        elif len(ret_val) == 0 or ret_val is None:
+            # set a warning message
+            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+        else:
+            # get the pull-down data using the above filtering mechanisms
+            pulldown_data: dict = self.get_pull_down_data(**kwargs)
 
-        # merge the pulldown data to the catalog list
-        ret_val.update({'pulldown_data': pulldown_data})
+            # check the return
+            if pulldown_data == -1:
+                ret_val = {'Error': 'Database error getting pulldown data.'}
+            # check the return, no data gets a 404 return
+            elif len(ret_val) == 0 or ret_val is None:
+                # set a warning message
+                ret_val = {'Warning': 'No pulldown data found using the filter criteria selected.'}
+            else:
+                # merge the pulldown data to the catalog list
+                ret_val.update({'pulldown_data': pulldown_data})
+
+                # are we using the new catalog workbench retrieval
+                if kwargs['use_new_wb']:
+                    # init the kwargs variable
+                    #kwargs: dict = {}
+
+                    # create the param list
+                    params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
+
+                    # loop through the params for the SP
+                    for param in params:
+                        # if the param is already in the kwargs use it, otherwise null it out
+                        if param not in kwargs:
+                            # add this parm to the list
+                            kwargs.update({param: 'null'})
+
+                    # add in the max age int
+                    kwargs.update({'max_age': 2})
+
+                    # try to make the call for records
+                    new_workbench_data = self.get_terria_map_workbench_data(**kwargs)
+
+                    # check the return
+                    if new_workbench_data == -1:
+                        ret_val = {'Error': 'Database error getting catalog workbench data.'}
+                    # check the return, no data gets a 404 return
+                    elif len(new_workbench_data) == 0 or new_workbench_data is None:
+                        # set a warning message
+                        ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+                    else:
+                        # merge the workbench data to the catalog list
+                        ret_val.update({'workbench': new_workbench_data['workbench']})
 
         # return the data
         return ret_val
