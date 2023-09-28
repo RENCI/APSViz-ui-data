@@ -10,7 +10,7 @@
 
     Author: Phil Owen, RENCI.org
 """
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 import dateutil.parser
 import pytz
 import pandas as pd
@@ -250,46 +250,46 @@ class PGImplementation(PGUtilsMultiConnect):
         # check for an error
         if forecast_data.empty:
             return ''
-        else:
-            # derive start date from the time mark
-            start_date = (datetime.fromisoformat(kwargs['time_mark']) - timedelta(4)).isoformat()
 
-            # get end_date from last datetime in forecast data
-            end_date = forecast_data['time_stamp'].iloc[-1]
+        # derive start date from the time mark
+        start_date = (datetime.fromisoformat(kwargs['time_mark']) - timedelta(4)).isoformat()
 
-            # get nowcast data_source from forecast data_source
-            nowcast_source = 'NOWCAST_' + "_".join(kwargs['data_source'].split('_')[1:])
+        # get end_date from last datetime in forecast data
+        end_date = forecast_data['time_stamp'].iloc[-1]
 
-            # get obs and nowcast data
-            obs_data = self.get_obs_station_data(kwargs['station_name'], start_date, end_date, nowcast_source)
+        # get nowcast data_source from forecast data_source
+        nowcast_source = 'NOWCAST_' + "_".join(kwargs['data_source'].split('_')[1:])
 
-            # drop empty columns
-            empty_cols = [col for col in obs_data.columns if obs_data[col].isnull().all()]
-            obs_data.drop(empty_cols, axis=1, inplace=True)
+        # get obs and nowcast data
+        obs_data = self.get_obs_station_data(kwargs['station_name'], start_date, end_date, nowcast_source)
 
-            # replace any None values with np.nan, in both DataFrames
-            forecast_data.fillna(value=np.nan)
-            obs_data.fillna(value=np.nan)
+        # drop empty columns
+        empty_cols = [col for col in obs_data.columns if obs_data[col].isnull().all()]
+        obs_data.drop(empty_cols, axis=1, inplace=True)
 
-            # convert all values after the time mark to nan, in obs data, except in the time_stamp and tidal_predictions columns
-            for col in obs_data.columns:
-                if col not in ('time_stamp', 'tidal_predictions'):
-                    obs_data.loc[obs_data.time_stamp >= kwargs['time_mark'], col] = np.nan
-                else:
-                    continue
+        # replace any None values with np.nan, in both DataFrames
+        forecast_data.fillna(value=np.nan)
+        obs_data.fillna(value=np.nan)
 
-            # merge the obs DataFrame with the forecast Dataframe
-            station_df = obs_data.merge(forecast_data, on='time_stamp', how='outer')
+        # convert all values after the time mark to nan, in obs data, except in the time_stamp and tidal_predictions columns
+        for col in obs_data.columns:
+            if col not in ('time_stamp', 'tidal_predictions'):
+                obs_data.loc[obs_data.time_stamp >= kwargs['time_mark'], col] = np.nan
+            else:
+                continue
 
-            # get the forecast and nowcast column names
-            forecast_column_name = "".join(kwargs['data_source'].split('.')).lower()
-            nowcast_column_name = "".join(nowcast_source.split('.')).lower()
+        # merge the obs DataFrame with the forecast Dataframe
+        station_df = obs_data.merge(forecast_data, on='time_stamp', how='outer')
 
-            # rename the columns
-            station_df.rename(columns={forecast_column_name: 'forecast_water_level', nowcast_column_name: 'nowcast_water_level'}, inplace=True)
+        # get the forecast and nowcast column names
+        forecast_column_name = "".join(kwargs['data_source'].split('.')).lower()
+        nowcast_column_name = "".join(nowcast_source.split('.')).lower()
 
-            # return the data to the caller
-            return station_df.to_csv(index=False)
+        # rename the columns
+        station_df.rename(columns={forecast_column_name: 'forecast_water_level', nowcast_column_name: 'nowcast_water_level'}, inplace=True)
+
+        # return the data to the caller
+        return station_df.to_csv(index=False)
 
     def get_forecast_station_data(self, station_name, time_mark, data_source) -> pd.DataFrame:
         """
