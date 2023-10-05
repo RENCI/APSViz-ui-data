@@ -247,15 +247,15 @@ class PGImplementation(PGUtilsMultiConnect):
         # get forecast data
         forecast_data = self.get_forecast_station_data(kwargs['station_name'], kwargs['time_mark'], kwargs['data_source'])
 
-        # check for an error
-        if forecast_data.empty:
-            return ''
-
         # derive start date from the time mark
         start_date = (datetime.fromisoformat(kwargs['time_mark']) - timedelta(4)).isoformat()
 
-        # get end_date from last datetime in forecast data
-        end_date = forecast_data['time_stamp'].iloc[-1]
+        # check for an error
+        if forecast_data.empty:
+            end_date = kwargs['time_mark']
+        else:
+            # get end_date from last datetime in forecast data
+            end_date = forecast_data['time_stamp'].iloc[-1]
 
         # get nowcast data_source from forecast data_source
         nowcast_source = 'NOWCAST_' + "_".join(kwargs['data_source'].split('_')[1:])
@@ -278,8 +278,12 @@ class PGImplementation(PGUtilsMultiConnect):
             else:
                 continue
 
-        # merge the obs DataFrame with the forecast Dataframe
-        station_df = obs_data.merge(forecast_data, on='time_stamp', how='outer')
+        # check for an error
+        if not forecast_data.empty:
+            # merge the obs DataFrame with the forecast Dataframe
+            station_df = obs_data.merge(forecast_data, on='time_stamp', how='outer')
+        else:
+            station_df = obs_data
 
         # get the forecast and nowcast column names
         forecast_column_name = "".join(kwargs['data_source'].split('.')).lower()
