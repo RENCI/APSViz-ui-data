@@ -129,43 +129,14 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # init the new workbench dict
-        new_workbench_data: dict = {}
-
-        # are we using the new catalog workbench retrieval
-        if kwargs['use_new_wb']:
-            # create the param list
-            params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
-
-            # loop through the params for the SP
-            for param in params:
-                # if the param is already in the kwargs use it, otherwise null it out
-                if param not in kwargs:
-                    # add this parm to the list
-                    kwargs.update({param: 'null'})
-
-            # add in the max age int
-            kwargs.update({'max_age': 2})
-
-            # try to make the call for records
-            ret_val = self.get_terria_map_workbench_data(**kwargs)
-
-            # check the return
-            if ret_val == -1:
-                ret_val = {'Error': 'Database error getting catalog workbench data.'}
-            # check the return, no data gets a 404 return
-            elif len(ret_val) == 0 or ret_val is None:
-                # set a warning message
-                ret_val = {'Warning': 'No workbench data found using the filter criteria selected.'}
-            else:
-                # save the workbench data
-                new_workbench_data = ret_val
+        # get the new workbench data
+        workbench_data: dict = self.get_workbench_data(**kwargs)
 
         # should we continue
-        if not ('Error' in new_workbench_data or 'Warning' in ret_val):
+        if not ('Error' in workbench_data or 'Warning' in workbench_data):
             # if there was workbench data use it in the data query
-            if len(new_workbench_data) > 0:
-                wb_sql: str = f",_run_id:='{'-'.join(new_workbench_data['workbench'][0].split('-')[:-1])}%'"
+            if len(workbench_data) > 0:
+                wb_sql: str = f",_run_id:='{'-'.join(workbench_data['workbench'][0].split('-')[:-1])}%'"
             else:
                 wb_sql: str = ""
 
@@ -202,11 +173,50 @@ class PGImplementation(PGUtilsMultiConnect):
                     ret_val.update({'pulldown_data': pulldown_data})
 
                 # if there is new workbench data add it in now
-                if len(new_workbench_data) > 0:
+                if len(workbench_data) > 0:
                     # merge the workbench data to the catalog list
-                    ret_val.update({'workbench': new_workbench_data['workbench']})
+                    ret_val.update({'workbench': workbench_data['workbench']})
 
         # return the data
+        return ret_val
+
+    def get_workbench_data(self, **kwargs):
+        """
+        gets the workbench data from the DB using the filter params specified.
+
+        :param kwargs:
+        :return:
+        """
+        # init the return
+        ret_val: dict = {}
+
+        # are we using the new catalog workbench retrieval
+        if kwargs['use_new_wb']:
+            # create the param list
+            params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
+
+            # loop through the params for the SP
+            for param in params:
+                # if the param is already in the kwargs use it, otherwise null it out
+                if param not in kwargs:
+                    # add this parm to the list
+                    kwargs.update({param: 'null'})
+
+            # add in the max age int
+            kwargs.update({'max_age': 2})
+
+            # try to make the call for records
+            ret_val = self.get_terria_map_workbench_data(**kwargs)
+
+            # check the return
+            if ret_val == -1:
+                ret_val = {'Error': 'Database error getting catalog workbench data.'}
+            # check the return, no data gets a 404 return
+            elif len(ret_val) == 0 or ret_val is None:
+                # set a warning message
+                ret_val = {'Warning': 'No workbench data found using the filter criteria selected.'}
+
+        # return the data to the caller
         return ret_val
 
     def get_pull_down_data(self, **kwargs) -> dict:

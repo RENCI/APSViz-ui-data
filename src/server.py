@@ -345,9 +345,6 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     # append a unique path to avoid collisions
     temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
 
-    # make the directory
-    os.makedirs(temp_file_path)
-
     # append the file name
     file_path: str = os.path.join(temp_file_path, file_name)
 
@@ -378,6 +375,9 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                 # set the status to a not found
                 status_code = 404
             else:
+                # make the directory
+                os.makedirs(temp_file_path)
+
                 # write out the data to a file
                 with open(file_path, 'w', encoding='utf-8') as f_h:
                     json.dump(ret_val, f_h)
