@@ -62,6 +62,9 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
+        # init the run id
+        run_id: str = None
+
         # create the sql to get the latest runs for the workbench lookup
         sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
                    f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, _project_code:=" \
@@ -103,11 +106,15 @@ class PGImplementation(PGUtilsMultiConnect):
                     # save the run id
                     run_id = f"{item['instance_id']}-{item['uid']}%"
 
-            # get the catalog members for the run using the id
-            sql = f"SELECT public.get_catalog_workbench(_run_id:='{run_id}')"
+            # did we get a run id
+            if run_id:
+                # get the catalog members for the run using the id
+                sql = f"SELECT public.get_catalog_workbench(_run_id:='{run_id}')"
 
-            # get the layer list
-            ret_val = self.exec_sql('apsviz', sql)
+                # get the layer list
+                ret_val = self.exec_sql('apsviz', sql)
+            else:
+                ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
         # return the data
         return ret_val
@@ -122,69 +129,82 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # create the sql
-        sql: str = f"SELECT public.get_terria_data_json(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
-                   f"_instance_name:={kwargs['instance_name']}, _run_date:={kwargs['run_date']}, _end_date:={kwargs['end_date']}, " \
-                   f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
-                   f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']}, _project_code:={kwargs['project_code']}, " \
-                   f"_product_type:={kwargs['product_type']})"
+        # init the new workbench dict
+        new_workbench_data: dict = {}
 
-        # get the layer list
-        ret_val = self.exec_sql('apsviz', sql)
+        # are we using the new catalog workbench retrieval
+        if kwargs['use_new_wb']:
+            # create the param list
+            params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
 
-        # check the return
-        if ret_val == -1:
-            ret_val = {'Error': 'Database error getting catalog workbench data.'}
-        # check the return, no data gets a 404 return
-        elif len(ret_val) == 0 or ret_val is None:
-            # set a warning message
-            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
-        else:
-            # get the pull-down data using the above filtering mechanisms
-            pulldown_data: dict = self.get_pull_down_data(**kwargs)
+            # loop through the params for the SP
+            for param in params:
+                # if the param is already in the kwargs use it, otherwise null it out
+                if param not in kwargs:
+                    # add this parm to the list
+                    kwargs.update({param: 'null'})
+
+            # add in the max age int
+            kwargs.update({'max_age': 2})
+
+            # try to make the call for records
+            ret_val = self.get_terria_map_workbench_data(**kwargs)
 
             # check the return
-            if pulldown_data == -1:
-                ret_val = {'Error': 'Database error getting pulldown data.'}
+            if ret_val == -1:
+                ret_val = {'Error': 'Database error getting catalog workbench data.'}
             # check the return, no data gets a 404 return
             elif len(ret_val) == 0 or ret_val is None:
                 # set a warning message
-                ret_val = {'Warning': 'No pulldown data found using the filter criteria selected.'}
+                ret_val = {'Warning': 'No workbench data found using the filter criteria selected.'}
             else:
-                # merge the pulldown data to the catalog list
-                ret_val.update({'pulldown_data': pulldown_data})
+                # save the workbench data
+                new_workbench_data = ret_val
 
-                # are we using the new catalog workbench retrieval
-                if kwargs['use_new_wb']:
-                    # init the kwargs variable
-                    #kwargs: dict = {}
+        # should we continue
+        if not ('Error' in new_workbench_data or 'Warning' in ret_val):
+            # if there was workbench data use it in the data query
+            if len(new_workbench_data) > 0:
+                wb_sql: str = f",_run_id:='{'-'.join(new_workbench_data['workbench'][0].split('-')[:-1])}%'"
+            else:
+                wb_sql: str = ""
 
-                    # create the param list
-                    params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
+            # create the sql
+            sql: str = f"SELECT public.get_terria_data_json(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
+                       f"_instance_name:={kwargs['instance_name']}, _run_date:={kwargs['run_date']}, _end_date:={kwargs['end_date']}, " \
+                       f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
+                       f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']}, _project_code:={kwargs['project_code']}, " \
+                       f"_product_type:={kwargs['product_type']}{wb_sql})"
 
-                    # loop through the params for the SP
-                    for param in params:
-                        # if the param is already in the kwargs use it, otherwise null it out
-                        if param not in kwargs:
-                            # add this parm to the list
-                            kwargs.update({param: 'null'})
+            # get the layer list
+            ret_val = self.exec_sql('apsviz', sql)
 
-                    # add in the max age int
-                    kwargs.update({'max_age': 2})
+            # check the return
+            if ret_val == -1:
+                ret_val = {'Error': 'Database error getting catalog data.'}
+            # check the return, no data gets a 404 return
+            elif len(ret_val) == 0 or ret_val is None:
+                # set a warning message
+                ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+            else:
+                # get the pull-down data using the above filtering mechanisms
+                pulldown_data: dict = self.get_pull_down_data(**kwargs)
 
-                    # try to make the call for records
-                    new_workbench_data = self.get_terria_map_workbench_data(**kwargs)
+                # check the return
+                if pulldown_data == -1:
+                    ret_val = {'Error': 'Database error getting pulldown data.'}
+                # check the return, no data gets a 404 return
+                elif len(ret_val) == 0 or ret_val is None:
+                    # set a warning message
+                    ret_val = {'Warning': 'No pulldown data found using the filter criteria selected.'}
+                else:
+                    # merge the pulldown data to the catalog list
+                    ret_val.update({'pulldown_data': pulldown_data})
 
-                    # check the return
-                    if new_workbench_data == -1:
-                        ret_val = {'Error': 'Database error getting catalog workbench data.'}
-                    # check the return, no data gets a 404 return
-                    elif len(new_workbench_data) == 0 or new_workbench_data is None:
-                        # set a warning message
-                        ret_val = {'Warning': 'No data found using the filter criteria selected.'}
-                    else:
-                        # merge the workbench data to the catalog list
-                        ret_val.update({'workbench': new_workbench_data['workbench']})
+                # if there is new workbench data add it in now
+                if len(new_workbench_data) > 0:
+                    # merge the workbench data to the catalog list
+                    ret_val.update({'workbench': new_workbench_data['workbench']})
 
         # return the data
         return ret_val

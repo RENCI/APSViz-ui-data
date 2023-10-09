@@ -103,19 +103,27 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         # try to make the call for records
         ret_val = db_info.get_terria_map_catalog_data(**kwargs)
 
-        # check the return
-        if ret_val == -1:
-            ret_val = {'Error': 'Database error getting catalog member data.'}
-
-            # set the status to a not found
+        # check the return for any detected errors or warnings
+        if 'Error' in ret_val:
+            # set the status to a server error
             status_code = 500
-        # check the return, no data gets a 404 return
-        elif ret_val['catalog'] is None:
-            # set a warning message
-            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
-
+        elif 'Warning' in ret_val:
             # set the status to a not found
             status_code = 404
+        else:
+            # was there a DB error
+            if ret_val == -1:
+                ret_val = {'Error': 'Database error getting catalog member data.'}
+
+                # set the status to a not found
+                status_code = 500
+            # check the return, no data gets a 404 return
+            elif 'catalog' not in ret_val:
+                # set a warning message
+                ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+
+                # set the status to a not found
+                status_code = 404
 
     except Exception:
         # return a failure message
@@ -347,23 +355,32 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
         # try to make the call for records
         ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
 
-        # check the return
-        if ret_val == -1:
-            ret_val = {'Error': 'Database error getting catalog member data.'}
-
-            # set the status to a not found
+        # check the return for any detected errors or warnings
+        if 'Error' in ret_val:
+            # set the returned status code
             status_code = 500
-        # check the return, no catalog data gets not found warning
-        if ret_val['catalog'] is None:
-            # set a warning message
-            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+        elif 'Warning' in ret_val:
+            # set the returned status code
+            status_code = 400
+        else:
+            # was there a DB error
+            if ret_val == -1:
+                # set a error message
+                ret_val = {'Error': 'Database error getting catalog member data.'}
 
-            # set the status to a not found
-            status_code = 404
+                # set the status to a not found
+                status_code = 500
+            # check the return, no data gets a 404 return
+            elif 'catalog' not in ret_val:
+                # set a warning message
+                ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
-        # write out the data to a file
-        with open(file_path, 'w', encoding='utf-8') as f_h:
-            json.dump(ret_val, f_h)
+                # set the status to a not found
+                status_code = 404
+            else:
+                # write out the data to a file
+                with open(file_path, 'w', encoding='utf-8') as f_h:
+                    json.dump(ret_val, f_h)
 
     except Exception:
         # log the exception
