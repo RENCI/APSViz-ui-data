@@ -203,7 +203,7 @@ class PGImplementation(PGUtilsMultiConnect):
                     kwargs.update({param: 'null'})
 
             # add in the max age int
-            kwargs.update({'max_age': 2})
+            kwargs.update({'max_age': 1})
 
             # try to make the call for records
             ret_val = self.get_terria_map_workbench_data(**kwargs)
