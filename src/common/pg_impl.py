@@ -312,15 +312,35 @@ class PGImplementation(PGUtilsMultiConnect):
         if not forecast_data.empty:
             # merge the obs DataFrame with the forecast Dataframe
             station_df = obs_data.merge(forecast_data, on='time_stamp', how='outer')
+
+            # get the forecast column name, and rename it
+            forecast_column_name = "".join(kwargs['data_source'].split('.')).lower()
+            station_df.rename(columns={forecast_column_name: 'APS Forecast'}, inplace=True)
         else:
             station_df = obs_data
 
-        # get the forecast and nowcast column names
-        forecast_column_name = "".join(kwargs['data_source'].split('.')).lower()
+        # get the obersevation and tidal predictions column names
+        if 'ocean_buoy_wave_height' in station_df.columns:
+            observation_name = [s for s in station_df.columns.values if 'wave_height' in s][0]
+        else:
+            observation_name = [s for s in station_df.columns.values if 'water_level' in s][0]
+        tidal_predictions_name = [s for s in station_df.columns.values if 'tidal_predictions' in s][0]
+
+        # get the nowcast column name
         nowcast_column_name = "".join(nowcast_source.split('.')).lower()
 
-        # rename the columns
-        station_df.rename(columns={forecast_column_name: 'forecast_water_level', nowcast_column_name: 'nowcast_water_level'}, inplace=True)
+        # check if nowcast column exists
+        if nowcast_column_name in station_df.columns:
+            # get difference between observation and nowcast columns
+            station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
+
+            # rename the columns
+            station_df.rename(columns={nowcast_column_name: 'APS Nowcast', observation_name: 'Observations', 
+                                       tidal_predictions_name: 'NOAA Tidal Predictions'}, inplace=True)
+        else:
+            # rename the columns
+            station_df.rename(columns={observation_name: 'Observations', tidal_predictions_name: 
+                                       'NOAA Tidal Predictions'}, inplace=True)
 
         # return the data to the caller
         return station_df.to_csv(index=False)
