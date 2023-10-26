@@ -335,11 +335,11 @@ class PGImplementation(PGUtilsMultiConnect):
             station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
 
             # rename the columns
-            station_df.rename(columns={'time_stamp': 'time',nowcast_column_name: 'APS Nowcast', observation_name: 'Observations', 
+            station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', observation_name: 'Observations',
                                        tidal_predictions_name: 'NOAA Tidal Predictions'}, inplace=True)
         else:
             # rename the columns
-            station_df.rename(columns={'time_stamp': 'time',observation_name: 'Observations', tidal_predictions_name: 
+            station_df.rename(columns={'time_stamp': 'time', observation_name: 'Observations', tidal_predictions_name:
                                        'NOAA Tidal Predictions'}, inplace=True)
 
         # return the data to the caller
