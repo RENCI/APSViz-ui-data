@@ -63,7 +63,7 @@ class PGImplementation(PGUtilsMultiConnect):
         ret_val: dict = {}
 
         # init the run id
-        run_id: str = None
+        run_id: str = ''
 
         # create the sql to get the latest runs for the workbench lookup
         sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
