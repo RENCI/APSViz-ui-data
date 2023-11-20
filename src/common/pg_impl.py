@@ -288,7 +288,15 @@ class PGImplementation(PGUtilsMultiConnect):
             end_date = forecast_data['time_stamp'].iloc[-1]
 
         # get nowcast data_source from forecast data_source
-        nowcast_source = 'NOWCAST_' + "_".join(kwargs['data_source'].split('_')[1:])
+        # check if data_source is tropical
+        if kwargs['data_source'][:2] == 'al':
+            # if tropical split data source and replace second value (OFCL) with NOWCAST
+            source_parts = kwargs['data_source'].split('_')
+            source_parts[1] = 'NOWCAST'
+            nowcast_source = "_".join(source_parts)
+        else:
+            # if synoptic split data source and replace fist value (GFSFORECAST) with NOWCAST
+            nowcast_source = 'NOWCAST_' + "_".join(kwargs['data_source'].split('_')[1:])
 
         # get obs and nowcast data
         obs_data = self.get_obs_station_data(kwargs['station_name'], start_date, end_date, nowcast_source)
