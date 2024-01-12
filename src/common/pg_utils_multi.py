@@ -169,7 +169,7 @@ class PGUtilsMultiConnect:
                         break
 
             except Exception:
-                self.logger.error('Error getting connection %s.', db_info.name)
+                self.logger.exception('Error getting connection %s.', db_info.name)
                 good_conn = False
 
             # are we still looking for a connection
