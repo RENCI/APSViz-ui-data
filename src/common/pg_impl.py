@@ -276,7 +276,7 @@ class PGImplementation(PGUtilsMultiConnect):
         :return:
         """
         # get forecast data
-        forecast_data = self.get_forecast_station_data(kwargs['station_name'], kwargs['time_mark'], kwargs['data_source'])
+        forecast_data = self.get_forecast_station_data(kwargs['station_name'], kwargs['time_mark'], kwargs['data_source'], kwargs['instance_name'])
 
         # derive start date from the time mark
         start_date = (datetime.fromisoformat(kwargs['time_mark']) - timedelta(4)).isoformat()
@@ -290,7 +290,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # get nowcast data_source from forecast data_source
         # check if data_source is tropical
-        if kwargs['data_source'][:2] == 'al':
+        if kwargs['forcing_metaclass'] == 'tropical':
             # if tropical split data source and replace second value (OFCL) with NOWCAST
             source_parts = kwargs['data_source'].split('_')
             source_parts[1] = 'NOWCAST'
@@ -299,16 +299,29 @@ class PGImplementation(PGUtilsMultiConnect):
             # if synoptic split data source and replace fist value (GFSFORECAST) with NOWCAST
             nowcast_source = 'NOWCAST_' + "_".join(kwargs['data_source'].split('_')[1:])
 
-        # get obs and nowcast data
-        obs_data = self.get_obs_station_data(kwargs['station_name'], start_date, end_date, nowcast_source)
+        # get obs data
+        obs_data = self.get_obs_station_data(kwargs['station_name'], start_date, end_date)
 
         # drop empty columns
         empty_cols = [col for col in obs_data.columns if obs_data[col].isnull().all()]
         obs_data.drop(empty_cols, axis=1, inplace=True)
 
+        # get nowcast data
+        nowcast_data = self.get_nowcast_station_data(kwargs['station_name'], start_date, end_date, nowcast_source, kwargs['instance_name'])
+
+        # If nowcast data exists merge it with obs data
+        if not nowcast_data.empty:
+            obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
+
         # replace any None values with np.nan, in both DataFrames
         forecast_data.fillna(value=np.nan)
         obs_data.fillna(value=np.nan)
+
+        # replace any -99999 values with np.nan, in both DataFrames
+        fcols = forecast_data.columns.tolist()
+        forecast_data[fcols] = forecast_data[fcols].replace([-99999], np.nan)
+        ocols = obs_data.columns.tolist()
+        obs_data[ocols] = obs_data[ocols].replace([-99999], np.nan)
 
         # convert all values after the time mark to nan, in obs data, except in the time_stamp and tidal_predictions columns
         for col in obs_data.columns:
@@ -353,13 +366,14 @@ class PGImplementation(PGUtilsMultiConnect):
         # return the data to the caller
         return station_df.to_csv(index=False)
 
-    def get_forecast_station_data(self, station_name, time_mark, data_source) -> pd.DataFrame:
+    def get_forecast_station_data(self, station_name, time_mark, data_source, instance_name) -> pd.DataFrame:
         """
         Gets the forcast station data
 
         :param station_name:
         :param time_mark:
         :param data_source:
+        :param instance_name:
         :return:
         """
         # init the return value:
@@ -367,7 +381,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # Run query
         sql = f"SELECT * FROM get_forecast_timeseries_station_data(_station_name := '{station_name}', _timemark := '{time_mark}', " \
-              f"_data_source := '{data_source}')"
+              f"_data_source := '{data_source}',  _source_instance := '{instance_name}')"
 
         # get the info
         station_data = self.exec_sql('apsviz_gauges', sql)
@@ -382,7 +396,38 @@ class PGImplementation(PGUtilsMultiConnect):
         # Return Pandas dataframe
         return ret_val
 
-    def get_obs_station_data(self, station_name, start_date, end_date, nowcast_source) -> pd.DataFrame:
+    def get_nowcast_station_data(self, station_name, start_date, end_date, data_source, instance_name) -> pd.DataFrame:
+        """
+        Gets the forcast station data
+
+        :param station_name:
+        :param start_date:
+        :param end_data:
+        :param data_source:
+        :param instance_name:
+        :return:
+        """
+        # init the return value:
+        ret_val: pd.DataFrame = pd.DataFrame()
+
+        # Run query
+        sql = f"SELECT * FROM get_nowcast_timeseries_station_data(_station_name := '{station_name}', _start_date := '{start_date}', " \
+              f"_end_date := '{end_date}', _data_source := '{data_source}',  _source_instance := '{instance_name}')"
+
+        # get the info
+        station_data = self.exec_sql('apsviz_gauges', sql)
+
+        # was it successful
+        if station_data != -1:
+            # convert query output to Pandas dataframe
+            ret_val = pd.DataFrame.from_dict(station_data, orient='columns')
+        else:
+            ret_val = pd.DataFrame(None)
+
+        # Return Pandas dataframe
+        return ret_val
+
+    def get_obs_station_data(self, station_name, start_date, end_date) -> pd.DataFrame:
         """
         Gets the observed station data.
 
@@ -396,8 +441,8 @@ class PGImplementation(PGUtilsMultiConnect):
         ret_val: pd.DataFrame = pd.DataFrame()
 
         # build the query
-        sql = f"SELECT * FROM get_obs_timeseries_station_data(_station_name := '{station_name}', _start_date := '{start_date}', _end_date := " \
-              f"'{end_date}', _nowcast_source := '{nowcast_source}')"
+        sql = f"SELECT * FROM get_obs_timeseries_station_data(_station_name := '{station_name}', _start_date := '{start_date}', " \
+              f"_end_date := '{end_date}')"
 
         # get the info
         station_data = self.exec_sql('apsviz_gauges', sql)
