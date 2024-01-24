@@ -312,8 +312,6 @@ class PGImplementation(PGUtilsMultiConnect):
         # If nowcast data exists merge it with obs data
         if not nowcast_data.empty:
             obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
-        else:
-            obs_data = obs_data
 
         # replace any None values with np.nan, in both DataFrames
         forecast_data.fillna(value=np.nan)
