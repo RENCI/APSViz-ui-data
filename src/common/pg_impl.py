@@ -290,7 +290,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # get nowcast data_source from forecast data_source
         # check if data_source is tropical
-        if kwargs['forcing_metaclass'] == 'tropical':
+        if kwargs['forcing_metclass'] == 'tropical':
             # if tropical split data source and replace second value (OFCL) with NOWCAST
             source_parts = kwargs['data_source'].split('_')
             source_parts[1] = 'NOWCAST'
