@@ -43,7 +43,7 @@ logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_for
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 # declare the database to use
-db_name: tuple = ('apsviz', 'apsviz_gauges', 'asgs')
+db_name: tuple = ('apsviz', 'apsviz_gauges')
 
 # create a DB connection object
 db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
@@ -63,9 +63,9 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
-    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ASGS grid
+    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ECFLOW grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
-    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
+    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ECFLOW instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
     <br/>&nbsp;&nbsp;&nbsp;storm_name: Filter by the storm name
     <br/>&nbsp;&nbsp;&nbsp;cycle: Filter by the cycle
@@ -225,7 +225,7 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
-    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
+    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ECFLOW instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
     <br/>&nbsp;&nbsp;&nbsp;storm_name: Filter by the storm name
     <br/>&nbsp;&nbsp;&nbsp;cycle: Filter by the cycle
@@ -308,7 +308,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;file_name: The name of the output file (default is apsviz.json)
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
-    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
+    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ECFLOW instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
     <br/>&nbsp;&nbsp;&nbsp;storm_name: Filter by the storm name
     <br/>&nbsp;&nbsp;&nbsp;cycle: Filter by the cycle
@@ -462,7 +462,7 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
     """
     Gets the json formatted catalog member data.
     <br/>Note: Leave filtering params empty if not desired.
-    <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the name of the ASGS grid. Leaving this empty will result in getting the latest <limit> records.
+    <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the name of the ECFLOW grid. Leaving this empty will result in getting the latest <limit> records.
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code.
     <br/>&nbsp;&nbsp;&nbsp;filter_event_type: Filter out records by event type.
     <br/>&nbsp;&nbsp;&nbsp;limit: limit the number of records returned. only applicable when run_id is empty.
@@ -534,9 +534,9 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     """
     Gets the json formatted UI pulldown data.
     <br/>Note: Leave filtering params empty if not desired.
-    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ASGS grid
+    <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ECFLOW grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
-    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ASGS instance
+    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ECFLOW instance
     <br/>&nbsp;&nbsp;&nbsp;met_class: Filter by the meteorological class
     <br/>&nbsp;&nbsp;&nbsp;storm_name: Filter by the storm name
     <br/>&nbsp;&nbsp;&nbsp;cycle: Filter by the cycle
