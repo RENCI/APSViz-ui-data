@@ -75,7 +75,7 @@ class PGImplementation(PGUtilsMultiConnect):
         max_age: int = int(kwargs['max_age'])
 
         # get the layer list
-        ret_val = self.exec_sql('asgs', sql)
+        ret_val = self.exec_sql('apsviz', sql)
 
         # check the return
         if ret_val == -1:
@@ -96,7 +96,7 @@ class PGImplementation(PGUtilsMultiConnect):
                     insertion_date = dateutil.parser.parse(item['insertion_date'])
                     date_diff = pytz.utc.localize(datetime.utcnow()) - insertion_date
 
-                    # is this young enough
+                    # is this young enough?
                     if date_diff.days < max_age:
                         # save the run id
                         run_id = f"{item['instance_id']}-{item['uid']}%"
@@ -133,9 +133,9 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the new workbench data
         workbench_data: dict = self.get_workbench_data(**kwargs)
 
-        # should we continue
+        # should we continue?
         if not ('Error' in workbench_data or 'Warning' in workbench_data):
-            # if there was workbench data use it in the data query
+            # if there was workbench data, use it in the data query
             if len(workbench_data) > 0:
                 wb_sql: str = f",_run_id:='{'-'.join(workbench_data['workbench'][0].split('-')[:-1])}%'"
             else:
