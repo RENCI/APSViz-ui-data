@@ -25,12 +25,12 @@ class PGImplementation(PGUtilsMultiConnect):
     """
         Class that contains DB calls for the ui data component.
 
-        Note this class inherits from the PGUtilsMultiConnect class
+        Note this class inherited from the PGUtilsMultiConnect class
         which has all the connection and cursor handling.
     """
 
     def __init__(self, db_names: tuple, _logger=None, _auto_commit=True):
-        # if a reference to a logger passed in use it
+        # if this has a reference to a logger passed in use it
         if _logger is not None:
             # get a handle to a logger
             self.logger = _logger
@@ -90,7 +90,7 @@ class PGImplementation(PGUtilsMultiConnect):
                 # interrogate the results we are looking to get this down to the latest relevant tropical run
                 # or the latest synoptic run catalog member.
 
-                # is there a tropical run and is it too old to display
+                # is there a tropical run and is it too old to display?
                 if item['met_class'] == 'tropical':
                     # get the number of days from the last tropical run to now
                     insertion_date = dateutil.parser.parse(item['insertion_date'])
@@ -173,7 +173,7 @@ class PGImplementation(PGUtilsMultiConnect):
                     # merge the pulldown data to the catalog list
                     ret_val.update({'pulldown_data': pulldown_data})
 
-                # if there is new workbench data add it in now
+                # if there is new workbench data, add it in now
                 if len(workbench_data) > 0:
                     # merge the workbench data to the catalog list
                     ret_val.update({'workbench': workbench_data['workbench']})
@@ -191,7 +191,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # are we using the new catalog workbench retrieval
+        # are we using the new catalog workbench retrieval?
         if kwargs['use_new_wb']:
             # create the param list
             params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
@@ -309,19 +309,43 @@ class PGImplementation(PGUtilsMultiConnect):
         # get nowcast data
         nowcast_data = self.get_nowcast_station_data(kwargs['station_name'], start_date, end_date, nowcast_source, kwargs['instance_name'])
 
-        # If nowcast data exists merge it with obs data
+        # If nowcast data exists, merge it with obs data
         if not nowcast_data.empty:
-            obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
+            # check if obs_data is empty
+            if not obs_data.empty:
+                # check if obs_data.columns id buoy. If it is search for wave_height, else search for water_level
+                if 'ocean_buoy_wave_height' in obs_data.columns:
+                    observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
+                else:
+                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
+
+                # Merge nowcast_data with obs_data
+                obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
+            else:
+                # if obs data is empty, just nowcast data become obs_data, and observation_name is None
+                obs_data = nowcast_data
+                observation_name = None
+        else:
+            # if nowcast data is empty, check if obs_data is also empty
+            if not obs_data.empty:
+                # check if obs_data.columns id buoy. If it is search for wave_height, else search for water_level
+                if 'ocean_buoy_wave_height' in obs_data.columns:
+                    observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
+                else:
+                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
+            else:
+                # if obs_data is empty, observation_name is None
+                observation_name = None
 
         # replace any None values with np.nan, in both DataFrames
         forecast_data.fillna(value=np.nan)
         obs_data.fillna(value=np.nan)
 
         # replace any -99999 values with np.nan, in both DataFrames
-        fcols = forecast_data.columns.tolist()
-        forecast_data[fcols] = forecast_data[fcols].replace([-99999], np.nan)
-        ocols = obs_data.columns.tolist()
-        obs_data[ocols] = obs_data[ocols].replace([-99999], np.nan)
+        f_cols = forecast_data.columns.tolist()
+        forecast_data[f_cols] = forecast_data[f_cols].replace([-99999], np.nan)
+        o_cols = obs_data.columns.tolist()
+        obs_data[o_cols] = obs_data[o_cols].replace([-99999], np.nan)
 
         # convert all values after the time mark to nan, in obs data, except in the time_stamp and tidal_predictions columns
         for col in obs_data.columns:
@@ -341,27 +365,30 @@ class PGImplementation(PGUtilsMultiConnect):
         else:
             station_df = obs_data
 
-        # get the obersevation and tidal predictions column names
-        if 'ocean_buoy_wave_height' in station_df.columns:
-            observation_name = [s for s in station_df.columns.values if 'wave_height' in s][0]
-        else:
-            observation_name = [s for s in station_df.columns.values if 'water_level' in s][0]
-
         # get the nowcast column name
         nowcast_column_name = "".join(nowcast_source.split('.')).lower()
 
         # check if nowcast column exists
         if nowcast_column_name in station_df.columns:
-            # get difference between observation and nowcast columns
-            station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
+            if observation_name:
+                # get difference between observation and nowcast columns
+                station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
 
-            # rename the columns
-            station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', observation_name: 'Observations',
-                                       'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
+                # rename the columns
+                station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', observation_name: 'Observations',
+                                           'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
+            else:
+                # rename the columns
+                station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', 'tidal_predictions': 'NOAA Tidal Predictions'},
+                                  inplace=True)
         else:
-            # rename the columns
-            station_df.rename(columns={'time_stamp': 'time', observation_name: 'Observations', 'tidal_predictions':
-                                       'NOAA Tidal Predictions'}, inplace=True)
+            # else check if observation_name has a value and rename the columns
+            if observation_name:
+                station_df.rename(columns={'time_stamp': 'time', observation_name: 'Observations', 'tidal_predictions': 'NOAA Tidal Predictions'},
+                                  inplace=True)
+            else:
+                # else if observation name is None rename tidal_predictions
+                station_df.rename(columns={'time_stamp': 'time', 'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
 
         # return the data to the caller
         return station_df.to_csv(index=False)
@@ -386,7 +413,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the info
         station_data = self.exec_sql('apsviz_gauges', sql)
 
-        # was it successful
+        # was it successful?
         if station_data != -1:
             # convert query output to Pandas dataframe
             ret_val = pd.DataFrame.from_dict(station_data, orient='columns')
@@ -402,7 +429,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
         :param station_name:
         :param start_date:
-        :param end_data:
+        :param end_date:
         :param data_source:
         :param instance_name:
         :return:
@@ -417,7 +444,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the info
         station_data = self.exec_sql('apsviz_gauges', sql)
 
-        # was it successful
+        # was it successful?
         if station_data != -1:
             # convert query output to Pandas dataframe
             ret_val = pd.DataFrame.from_dict(station_data, orient='columns')
@@ -434,7 +461,6 @@ class PGImplementation(PGUtilsMultiConnect):
         :param station_name:
         :param start_date:
         :param end_date:
-        :param nowcast_source:
         :return:
         """
         # init the return value:
@@ -447,7 +473,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the info
         station_data = self.exec_sql('apsviz_gauges', sql)
 
-        # was it successful
+        # was it successful?
         if station_data != -1:
             # convert query output to Pandas dataframe
             ret_val = pd.DataFrame.from_dict(station_data, orient='columns')
