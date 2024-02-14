@@ -311,7 +311,31 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # If nowcast data exists merge it with obs data
         if not nowcast_data.empty:
-            obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
+            # check if obs_data is empty
+            if not obs_data.empty:
+                # check if obs_data.coloumns id bouy. If it is search for wave_height, else search for water_level
+                if 'ocean_buoy_wave_height' in obs_data.columns:
+                    observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
+                else:
+                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
+                
+                # Merge nowcast_data with obs_data
+                obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
+            else:
+                # if obs data is empty just nowcast data become obs_data, and observation_name is None
+                obs_data = nowcast_data
+                observation_name = None
+        else:
+            # if nowcast data is empty check if obs_data is also empty
+            if not obs_data.empty:
+                # check if obs_data.coloumns id bouy. If it is search for wave_height, else search for water_level
+                if 'ocean_buoy_wave_height' in obs_data.columns:
+                    observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
+                else:
+                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
+            else:
+                # if obs_data is empty observation_name is None
+                observation_name = None
 
         # replace any None values with np.nan, in both DataFrames
         forecast_data.fillna(value=np.nan)
@@ -341,27 +365,32 @@ class PGImplementation(PGUtilsMultiConnect):
         else:
             station_df = obs_data
 
-        # get the obersevation and tidal predictions column names
-        if 'ocean_buoy_wave_height' in station_df.columns:
-            observation_name = [s for s in station_df.columns.values if 'wave_height' in s][0]
-        else:
-            observation_name = [s for s in station_df.columns.values if 'water_level' in s][0]
-
         # get the nowcast column name
         nowcast_column_name = "".join(nowcast_source.split('.')).lower()
 
         # check if nowcast column exists
         if nowcast_column_name in station_df.columns:
-            # get difference between observation and nowcast columns
-            station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
+            if observation_name:
+                # get difference between observation and nowcast columns
+                station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
 
-            # rename the columns
-            station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', observation_name: 'Observations',
-                                       'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
+                # rename the columns
+                station_df.rename(columns={'time_stamp': 'time',nowcast_column_name: 'APS Nowcast',
+                                           observation_name: 'Observations', 'tidal_predictions': 
+                                           'NOAA Tidal Predictions'}, inplace=True)
+            else:
+                # rename the columns
+                station_df.rename(columns={'time_stamp': 'time',nowcast_column_name: 'APS Nowcast',
+                                           'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)            
         else:
-            # rename the columns
-            station_df.rename(columns={'time_stamp': 'time', observation_name: 'Observations', 'tidal_predictions':
-                                       'NOAA Tidal Predictions'}, inplace=True)
+            # else check if observation_name has a vaule and rename the columns
+            if observation_name:
+                station_df.rename(columns={'time_stamp': 'time',observation_name: 'Observations', 
+                                           'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
+            else:
+                # else if observation name is None, just rename tidal_predictions
+                station_df.rename(columns={'time_stamp': 'time','tidal_predictions': 'NOAA Tidal Predictions'}, 
+                                  inplace=True)
 
         # return the data to the caller
         return station_df.to_csv(index=False)
