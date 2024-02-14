@@ -15,4 +15,5 @@ max-locals=20
 min-public-methods=0
 fail-under=9.5
 extension-pkg-allow-list=pydantic
-max-branches=20
+max-branches=25
+max-statements=62

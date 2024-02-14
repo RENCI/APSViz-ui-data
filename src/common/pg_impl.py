@@ -318,7 +318,7 @@ class PGImplementation(PGUtilsMultiConnect):
                     observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
                 else:
                     observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
-                
+
                 # Merge nowcast_data with obs_data
                 obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
             else:
@@ -375,22 +375,20 @@ class PGImplementation(PGUtilsMultiConnect):
                 station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
 
                 # rename the columns
-                station_df.rename(columns={'time_stamp': 'time',nowcast_column_name: 'APS Nowcast',
-                                           observation_name: 'Observations', 'tidal_predictions': 
-                                           'NOAA Tidal Predictions'}, inplace=True)
+                station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', observation_name: 'Observations',
+                                           'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
             else:
                 # rename the columns
-                station_df.rename(columns={'time_stamp': 'time',nowcast_column_name: 'APS Nowcast',
-                                           'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)            
+                station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', 'tidal_predictions': 'NOAA Tidal Predictions'},
+                                  inplace=True)
         else:
             # else check if observation_name has a vaule and rename the columns
             if observation_name:
-                station_df.rename(columns={'time_stamp': 'time',observation_name: 'Observations', 
-                                           'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
+                station_df.rename(columns={'time_stamp': 'time', observation_name: 'Observations', 'tidal_predictions': 'NOAA Tidal Predictions'},
+                                  inplace=True)
             else:
                 # else if observation name is None, just rename tidal_predictions
-                station_df.rename(columns={'time_stamp': 'time','tidal_predictions': 'NOAA Tidal Predictions'}, 
-                                  inplace=True)
+                station_df.rename(columns={'time_stamp': 'time', 'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
 
         # return the data to the caller
         return station_df.to_csv(index=False)
