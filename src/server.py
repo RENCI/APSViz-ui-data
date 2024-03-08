@@ -453,7 +453,7 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
         status_code = 500
 
     # return to the caller
-    return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/plain")
+    return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/csv")
 
 
 @APP.get('/get_catalog_member_records', status_code=200, response_model=None)
