@@ -13,6 +13,7 @@
 import json
 import os
 import uuid
+import csv
 
 from typing import Union
 
@@ -399,6 +400,67 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
 def get_station_data(station_name: Union[str, None] = Query(default=None), time_mark: Union[str, None] = Query(default=None),
                      data_source: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
                      forcing_metclass: Union[str, None] = Query(default=None)) -> PlainTextResponse:
+    """
+    Returns the CSV formatted observational station.
+
+    Note that all fields are mandatory.
+
+    :return:
+    """
+    # init the return and html status code
+    ret_val: str = ''
+    status_code: int = 200
+
+    # example input - station name: 8651370, timemark: 2023-08-24T00:00:00, data_source: GFSFORECAST_WNAT_53K_V1.0
+    try:
+        # validate the input. nothing is optional
+        if station_name or time_mark or data_source or instance_name or forcing_metclass:
+            # init the kwargs variable
+            kwargs: dict = {}
+
+            # create the param list
+            params: list = ['station_name', 'time_mark', 'data_source', 'instance_name', 'forcing_metclass']
+
+            # loop through the SP params passed in
+            for param in params:
+                # add this parm to the list
+                kwargs.update({param: 'null' if not locals()[param] else f'{locals()[param]}'})
+
+            # try to make the call for records
+            ret_val: str = db_info.get_station_data(**kwargs)
+
+            # was the call successful
+            if len(ret_val) == 0:
+                # set the Warning message and the return status
+                ret_val = 'Warning: No station data found using the criteria selected.'
+
+                # set the status to a not found
+                status_code = 404
+        else:
+            # set the error message
+            ret_val = 'Error Invalid input. Insure that all input fields are populated.'
+
+            # set the status to a not found
+            status_code = 404
+
+    except Exception:
+        # return a failure message
+        ret_val = 'Exception detected trying to get station data.'
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/csv")
+
+@APP.get('/get_station_data_file', status_code=200, response_model=None)
+async def get_station_data(file_name: Union[str, None] = Query(default='station.csv'),
+                     station_name: Union[str, None] = Query(default=None), time_mark: Union[str, None] = Query(default=None),
+                     data_source: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
+                     forcing_metclass: Union[str, None] = Query(default=None)) -> csv:
     """
     Returns the CSV formatted observational station.
 
