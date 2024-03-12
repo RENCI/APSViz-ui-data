@@ -473,6 +473,13 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
     ret_val: str = ''
     status_code: int = 200
 
+    # get a file path to the temp file directory.
+    # append a unique path to avoid collisions
+    temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
+
+    # append the file name
+    file_path: str = os.path.join(temp_file_path, file_name)
+
     # example input - station name: 8728690,
     #                 timemark: 2024-03-07T00:00:00Z,
     #                 data_source: GFSFORECAST_NCSC_SAB_V1.23
@@ -480,13 +487,6 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
     #                 forcing_metclass: synoptic
 
     try:
-        # get a file path to the temp file directory.
-        # append a unique path to avoid collisions
-        temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
-
-        # append the file name
-        file_path: str = os.path.join(temp_file_path, file_name)
-
         # validate the input. nothing is optional
         if station_name or time_mark or data_source or instance_name or forcing_metclass:
             # init the kwargs variable
@@ -510,14 +510,14 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
 
                 # set the status to a not found
                 status_code = 404
-            
+
             else:
                 # make the directory
                 os.makedirs(temp_file_path)
 
                 # write out the data to a file
                 reader = csv.reader(ret_val.splitlines(), skipinitialspace=True)
-                with open(file_path, 'w') as f_h:
+                with open(file_path, 'w', encoding="utf-8") as f_h:
                     writer = csv.writer(f_h)
                     writer.writerows(reader)
         else:
