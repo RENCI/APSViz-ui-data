@@ -456,13 +456,14 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
     # return to the caller
     return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/csv")
 
+
 @APP.get('/get_station_data_file', status_code=200, response_model=None)
-async def get_station_data(file_name: Union[str, None] = Query(default='station.csv'),
-                     station_name: Union[str, None] = Query(default=None), time_mark: Union[str, None] = Query(default=None),
-                     data_source: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
-                     forcing_metclass: Union[str, None] = Query(default=None)) -> csv:
+async def get_station_data_file(file_name: Union[str, None] = Query(default='station.csv'),
+                                station_name: Union[str, None] = Query(default=None), time_mark: Union[str, None] = Query(default=None),
+                                data_source: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
+                                forcing_metclass: Union[str, None] = Query(default=None)) -> csv:
     """
-    Returns the CSV formatted observational station.
+    Returns the CSV formatted observational station data as a csv file.
 
     Note that all fields are mandatory.
 
@@ -472,8 +473,20 @@ async def get_station_data(file_name: Union[str, None] = Query(default='station.
     ret_val: str = ''
     status_code: int = 200
 
-    # example input - station name: 8651370, timemark: 2023-08-24T00:00:00, data_source: GFSFORECAST_WNAT_53K_V1.0
+    # example input - station name: 8728690,
+    #                 timemark: 2024-03-07T00:00:00Z,
+    #                 data_source: GFSFORECAST_NCSC_SAB_V1.23
+    #                 instance_name: ncsc123_gfs_sb55.01 
+    #                 forcing_metclass: synoptic
+
     try:
+        # get a file path to the temp file directory.
+        # append a unique path to avoid collisions
+        temp_file_path: str = os.path.join(os.getenv('TEMP_FILE_PATH', os.path.dirname(__file__)), str(uuid.uuid4()))
+
+        # append the file name
+        file_path: str = os.path.join(temp_file_path, file_name)
+
         # validate the input. nothing is optional
         if station_name or time_mark or data_source or instance_name or forcing_metclass:
             # init the kwargs variable
@@ -497,6 +510,14 @@ async def get_station_data(file_name: Union[str, None] = Query(default='station.
 
                 # set the status to a not found
                 status_code = 404
+            
+            else:
+                # make the directory
+                os.makedirs(temp_file_path)
+
+                # write out the data to a file
+                with open(file_path, 'w', encoding='utf-8') as f_h:
+                    json.dump(ret_val, f_h)
         else:
             # set the error message
             ret_val = 'Error Invalid input. Insure that all input fields are populated.'
@@ -515,7 +536,8 @@ async def get_station_data(file_name: Union[str, None] = Query(default='station.
         status_code = 500
 
     # return to the caller
-    return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/csv")
+    return FileResponse(path=file_path, filename=file_name, media_type='text/csv', status_code=status_code,
+                        background=BackgroundTask(GenUtils.cleanup, temp_file_path))
 
 
 @APP.get('/get_catalog_member_records', status_code=200, response_model=None)
