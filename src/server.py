@@ -516,8 +516,10 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
                 os.makedirs(temp_file_path)
 
                 # write out the data to a file
-                with open(file_path, 'w', encoding='utf-8') as f_h:
-                    json.dump(ret_val, f_h)
+                reader = csv.reader(ret_val.splitlines(), skipinitialspace=True)
+                with open(file_path, 'w') as f_h:
+                    writer = csv.writer(f_h)
+                    writer.writerows(reader)
         else:
             # set the error message
             ret_val = 'Error Invalid input. Insure that all input fields are populated.'
