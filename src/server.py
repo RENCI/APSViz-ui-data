@@ -113,7 +113,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
             # set the status to a not found
             status_code = 404
         else:
-            # was there a DB error
+            # if there was DB error
             if ret_val == -1:
                 ret_val = {'Error': 'Database error getting catalog member data.'}
 
