@@ -141,8 +141,14 @@ class PGImplementation(PGUtilsMultiConnect):
             else:
                 wb_sql: str = ""
 
+            # get the correct sp name
+            if kwargs['use_v3_sp']:
+                sp_name: str = 'public.get_terria_data_json_v3'
+            else:
+                sp_name: str = 'public.get_terria_data_json'
+
             # create the sql
-            sql: str = f"SELECT public.get_terria_data_json(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
+            sql: str = f"SELECT {sp_name}(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
                        f"_instance_name:={kwargs['instance_name']}, _run_date:={kwargs['run_date']}, _end_date:={kwargs['end_date']}, " \
                        f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
                        f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']}, _project_code:={kwargs['project_code']}, " \
