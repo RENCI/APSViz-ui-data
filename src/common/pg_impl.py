@@ -168,21 +168,18 @@ class PGImplementation(PGUtilsMultiConnect):
                 # get the pull-down data using the above filtering mechanisms
                 pulldown_data: dict = self.get_pull_down_data(**kwargs)
 
-                # check the return
-                if pulldown_data == -1:
-                    ret_val = {'Error': 'Database error getting pulldown data.'}
                 # check the return, no data gets a 404 return
-                elif len(ret_val) == 0 or ret_val is None:
+                if pulldown_data == -1 or pulldown_data is None:
                     # set a warning message
                     ret_val = {'Warning': 'No pulldown data found using the filter criteria selected.'}
                 else:
                     # merge the pulldown data to the catalog list
                     ret_val.update({'pulldown_data': pulldown_data})
 
-                # if there is new workbench data, add it in now
-                if len(workbench_data) > 0:
-                    # merge the workbench data to the catalog list
-                    ret_val.update({'workbench': workbench_data['workbench']})
+                    # if there is new workbench data, add it in now
+                    if len(workbench_data) > 0:
+                        # merge the workbench data to the catalog list
+                        ret_val.update({'workbench': workbench_data['workbench']})
 
         # return the data
         return ret_val
