@@ -115,9 +115,9 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         if 'Error' in ret_val:
             # set the status to a server error
             status_code = 500
-        elif 'Warning' in ret_val:
-            # set the status to a not found
-            status_code = 404
+        # elif 'Warning' in ret_val:
+        #     # set the status to a not found
+        #     status_code = 404
         else:
             # if there was DB error
             if ret_val == -1:
@@ -129,9 +129,6 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
             elif 'catalog' not in ret_val:
                 # set a warning message
                 ret_val = {'Warning': 'No data found using the filter criteria selected.'}
-
-                # set the status to a not found
-                status_code = 404
 
     except Exception:
         # return a failure message
@@ -199,9 +196,6 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
         elif len(ret_val) == 0:
             # set a warning message
             ret_val = {'Warning': 'No data found using the filter criteria selected.'}
-
-            # set the status to a not found
-            status_code = 404
 
     except Exception:
         # return a failure message
@@ -285,12 +279,9 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
             # set the status to a not found
             status_code = 500
         # check the return, no data gets a 404 return
-        elif ret_val['catalog'] is None:
+        elif 'catalog' not in ret_val:
             # set a warning message
             ret_val = {'Warning': 'No data found using the filter criteria selected.'}
-
-            # set the status to a not found
-            status_code = 404
 
     except Exception:
         # return a failure message
@@ -392,8 +383,6 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                 # set a warning message
                 ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
-                # set the status to a not found
-                status_code = 404
             else:
                 # make the directory
                 os.makedirs(temp_file_path)
@@ -451,15 +440,9 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
             if len(ret_val) == 0:
                 # set the Warning message and the return status
                 ret_val = 'Warning: No station data found using the criteria selected.'
-
-                # set the status to a not found
-                status_code = 404
         else:
             # set the error message
             ret_val = 'Error Invalid input. Insure that all input fields are populated.'
-
-            # set the status to a not found
-            status_code = 404
 
     except Exception:
         # return a failure message
@@ -526,9 +509,6 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
                 # set the Warning message and the return status
                 ret_val = 'Warning: No station data found using the criteria selected.'
 
-                # set the status to a not found
-                status_code = 404
-
             else:
                 # make the directory
                 os.makedirs(temp_file_path)
@@ -541,9 +521,6 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
         else:
             # set the error message
             ret_val = 'Error Invalid input. Insure that all input fields are populated.'
-
-            # set the status to a not found
-            status_code = 404
 
     except Exception:
         # return a failure message
@@ -610,9 +587,6 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
             else:
                 # return a failure message
                 ret_val = {'Warning': 'No data found using the filter criteria selected.'}
-
-                # set the status to a data not found error
-                status_code = 404
 
     except Exception:
         # return a failure message
