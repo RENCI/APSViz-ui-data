@@ -63,59 +63,68 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # init the run id
-        run_id: str = ''
+        # if there was a run id specified in the request we are returning a workbench for only that run
+        if kwargs['run_id'] != 'null':
+            # get the catalog members for the run using the id
+            sql = f"SELECT public.get_catalog_workbench(_run_id:='{kwargs['run_id']}')"
 
-        # create the sql to get the latest runs for the workbench lookup
-        sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
-                   f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, _project_code:=" \
-                   f"{kwargs['project_code']})"
-
-        # get the max age
-        max_age: int = int(kwargs['max_age'])
-
-        # get the layer list
-        ret_val = self.exec_sql('apsviz', sql)
-
-        # check the return
-        if ret_val == -1:
-            ret_val = {'Error': 'Database error getting catalog workbench data.'}
-        # check the return, no data gets a 404 return
-        elif len(ret_val) == 0 or ret_val is None:
-            # set a warning message
-            ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+            # get the layer list
+            ret_val = self.exec_sql('apsviz', sql)
+        # else go through the logic of determining the proper workbench
         else:
-            # for each of the entries returned
-            for item in ret_val:
-                # interrogate the results we are looking to get this down to the latest relevant tropical run
-                # or the latest synoptic run catalog member.
+            # init the run id
+            run_id: str = ''
 
-                # is there a tropical run and is it too old to display?
-                if item['met_class'] == 'tropical':
-                    # get the number of days from the last tropical run to now
-                    insertion_date = dateutil.parser.parse(item['insertion_date'])
-                    date_diff = pytz.utc.localize(datetime.utcnow()) - insertion_date
+            # create the sql to get the latest runs for the workbench lookup
+            sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
+                       f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, _project_code:=" \
+                       f"{kwargs['project_code']})"
 
-                    # is this young enough?
-                    if date_diff.days < max_age:
+            # get the max age
+            max_age: int = int(kwargs['max_age'])
+
+            # get the layer list
+            ret_val = self.exec_sql('apsviz', sql)
+
+            # check the return
+            if ret_val == -1:
+                ret_val = {'Error': 'Database error getting catalog workbench data.'}
+            # check the return, no data gets a 404 return
+            elif len(ret_val) == 0 or ret_val is None:
+                # set a warning message
+                ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+            else:
+                # for each of the entries returned
+                for item in ret_val:
+                    # interrogate the results we are looking to get this down to the latest relevant tropical run
+                    # or the latest synoptic run catalog member.
+
+                    # is there a tropical run and is it too old to display?
+                    if item['met_class'] == 'tropical':
+                        # get the number of days from the last tropical run to now
+                        insertion_date = dateutil.parser.parse(item['insertion_date'])
+                        date_diff = pytz.utc.localize(datetime.utcnow()) - insertion_date
+
+                        # is this young enough?
+                        if date_diff.days < max_age:
+                            # save the run id
+                            run_id = f"{item['instance_id']}-{item['uid']}%"
+
+                            # no need to continue
+                            break
+                    elif item['met_class'] == 'synoptic':
                         # save the run id
                         run_id = f"{item['instance_id']}-{item['uid']}%"
 
-                        # no need to continue
-                        break
-                elif item['met_class'] == 'synoptic':
-                    # save the run id
-                    run_id = f"{item['instance_id']}-{item['uid']}%"
+                # did we get a run id
+                if run_id:
+                    # get the catalog members for the run using the id
+                    sql = f"SELECT public.get_catalog_workbench(_run_id:='{run_id}')"
 
-            # did we get a run id
-            if run_id:
-                # get the catalog members for the run using the id
-                sql = f"SELECT public.get_catalog_workbench(_run_id:='{run_id}')"
-
-                # get the layer list
-                ret_val = self.exec_sql('apsviz', sql)
-            else:
-                ret_val = {'Warning': 'No data found using the filter criteria selected.'}
+                    # get the layer list
+                    ret_val = self.exec_sql('apsviz', sql)
+                else:
+                    ret_val = {'Warning': 'No data found using the filter criteria selected.'}
 
         # return the data
         return ret_val
@@ -133,13 +142,16 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the new workbench data
         workbench_data: dict = self.get_workbench_data(**kwargs)
 
+        wb_sql: str = ""
+
         # should we continue?
         if not ('Error' in workbench_data or 'Warning' in workbench_data):
+            # if the run id was specified use it. this also disables using the new workbench code
+            if 'run_id' in kwargs and kwargs['run_id'] != 'null':
+                wb_sql = f", _run_id:='{kwargs['run_id']}'"
             # if there was workbench data, use it in the data query
-            if len(workbench_data) > 0:
+            elif len(workbench_data) > 0:
                 wb_sql: str = f",_run_id:='{'-'.join(workbench_data['workbench'][0].split('-')[:-1])}%'"
-            else:
-                wb_sql: str = ""
 
             # get the correct sp name
             if kwargs['use_v3_sp']:
@@ -150,9 +162,9 @@ class PGImplementation(PGUtilsMultiConnect):
             # create the sql
             sql: str = f"SELECT {sp_name}(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
                        f"_instance_name:={kwargs['instance_name']}, _run_date:={kwargs['run_date']}, _end_date:={kwargs['end_date']}, " \
-                       f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, _storm_name:={kwargs['storm_name']}, " \
-                       f"_cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']}, _project_code:={kwargs['project_code']}, " \
-                       f"_product_type:={kwargs['product_type']}{wb_sql})"
+                       f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, " \
+                       f"_storm_name:={kwargs['storm_name']}, _cycle:={kwargs['cycle']}, _advisory_number:={kwargs['advisory_number']}, " \
+                       f"_project_code:={kwargs['project_code']}, _product_type:={kwargs['product_type']}{wb_sql})"
 
             # get the layer list
             ret_val = self.exec_sql('apsviz', sql)

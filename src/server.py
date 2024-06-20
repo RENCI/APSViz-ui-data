@@ -61,8 +61,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
                                       end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
                                       product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
                                       use_new_wb: Union[bool, None] = Query(default=False),
-                                      use_v3_sp: Union[bool, None] = Query(default=False)
-                                      ) -> json:
+                                      use_v3_sp: Union[bool, None] = Query(default=False)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -212,20 +211,21 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
 
 
 @APP.get('/get_ui_data_secure', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
-async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
+async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(default=None), grid_type: Union[str, None] = Query(default=None),
+                                             event_type: Union[str, None] = Query(default=None),
                                              instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                              storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                              advisory_number: Union[str, None] = Query(default=None),
                                              run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
                                              project_code: Union[str, None] = Query(default=None),
-                                             product_type: Union[str, None] = Query(default=None),
-                                             limit: Union[int, None] = Query(default=7),
+                                             product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
                                              use_new_wb: Union[bool, None] = Query(default=False),
-                                             use_v3_sp: Union[bool, None] = Query(default=False),
-                                             ) -> json:
+                                             use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
     Gets the json formatted terria map UI catalog data.
+    4460-2024020500-gfsforecast
     <br/>Note: Leave filtering params empty if not desired.
+    <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the run ID
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
     <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ECFLOW instance
@@ -239,7 +239,7 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
-    <br/>&nbsp;&nbsp;&nbsp;use_v3_sp: Use the new v3 data stored procedure
+    <br/>&nbsp;&nbsp;&nbsp;use_v3_sp: Use the UI v3 data stored procedure
     """
     # init the returned data and html status code
     ret_val: dict = {}
@@ -247,16 +247,16 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
 
     try:
         logger.debug(
-            'Input params - grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
-            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s', grid_type, event_type, instance_name, met_class, storm_name,
-            cycle, advisory_number, run_date, end_date, project_code, product_type, limit)
+            'Input params - run_id: %s, grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
+            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s', run_id, grid_type, event_type, instance_name, met_class,
+            storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit)
 
         # init the kwargs variable
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
-                        'project_code', 'product_type', 'limit']
+        params: list = ['run_id', 'grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date',
+                        'end_date', 'project_code', 'product_type', 'limit']
 
         # loop through the SP params passed in
         for param in params:
@@ -268,6 +268,12 @@ async def get_terria_map_catalog_data_secure(grid_type: Union[str, None] = Query
 
         # add in the new workbench retrieval flag
         kwargs.update({'use_v3_sp': use_v3_sp})
+
+        # if there was a run id specified make it a wildcard
+        if run_id is not None:
+            # add in the new workbench retrieval flag
+            #kwargs.update({'use_new_wb': False})
+            kwargs.update({'run_id': run_id + '%'})
 
         # try to make the call for records
         ret_val = db_info.get_terria_map_catalog_data(**kwargs)
@@ -306,8 +312,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                                            end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
                                            product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
                                            use_new_wb: Union[bool, None] = Query(default=False),
-                                           use_v3_sp: Union[bool, None] = Query(default=False),
-                                           ) -> json:
+                                           use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
     Returns the json formatted terria map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
@@ -459,9 +464,9 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
 
 
 @APP.get('/get_station_data_file', status_code=200, response_model=None)
-async def get_station_data_file(file_name: Union[str, None] = Query(default='station.csv'),
-                                station_name: Union[str, None] = Query(default=None), time_mark: Union[str, None] = Query(default=None),
-                                data_source: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
+async def get_station_data_file(file_name: Union[str, None] = Query(default='station.csv'), station_name: Union[str, None] = Query(default=None),
+                                time_mark: Union[str, None] = Query(default=None), data_source: Union[str, None] = Query(default=None),
+                                instance_name: Union[str, None] = Query(default=None),
                                 forcing_metclass: Union[str, None] = Query(default=None)) -> csv:
     """
     Returns the CSV formatted observational station data as a csv file.
