@@ -64,7 +64,7 @@ class PGImplementation(PGUtilsMultiConnect):
         ret_val: dict = {}
 
         # if there was a run id specified in the request we are returning a workbench for only that run
-        if kwargs['run_id'] != 'null':
+        if 'run_id' in kwargs and kwargs['run_id'] != 'null':
             # get the catalog members for the run using the id
             sql = f"SELECT public.get_catalog_workbench(_run_id:='{kwargs['run_id']}')"
 
