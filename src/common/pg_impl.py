@@ -298,7 +298,9 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # check for an error
         if forecast_data.empty:
-            end_date = kwargs['time_mark']
+            # If no forecast data add 120 hours (5 days) to end_date for the tidal predictions data
+            #end_date = kwargs['time_mark']
+            end_date = (datetime.fromisoformat(kwargs['time_mark']) + timedelta(5)).isoformat()
         else:
             # get end_date from last datetime in forecast data
             end_date = forecast_data['time_stamp'].iloc[-1]
