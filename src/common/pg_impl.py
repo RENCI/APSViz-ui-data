@@ -367,7 +367,8 @@ class PGImplementation(PGUtilsMultiConnect):
         # convert all values after the time mark to nan, in obs data, except in the time_stamp and tidal_predictions columns
         for col in obs_data.columns:
             if col not in ('time_stamp', 'tidal_predictions'):
-                obs_data.loc[obs_data.time_stamp >= kwargs['time_mark'], col] = np.nan
+                timemark = " ".join(kwargs['time_mark'].split('T'))
+                obs_data.loc[obs_data.time_stamp >= timemark, col] = np.nan
             else:
                 continue
 
