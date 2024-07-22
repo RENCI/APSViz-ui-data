@@ -328,36 +328,24 @@ class PGImplementation(PGUtilsMultiConnect):
         # get nowcast data
         nowcast_data = self.get_nowcast_station_data(kwargs['station_name'], start_date, end_date, nowcast_source, kwargs['instance_name'])
 
-        # If nowcast data exists, merge it with obs data
+        # If nowcast data exists merge it with obs data
         if not nowcast_data.empty:
-            # check if obs_data is empty
             if not obs_data.empty:
-                # check if obs_data.columns id buoy. If it is search for wave_height, else search for water_level
-                if 'ocean_buoy_wave_height' in obs_data.columns:
-                    observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
-                else:
-                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s]
-                    if len(observation_name) == 0:
-                        observation_name = None
-                    else:
-                        observation_name = observation_name[0]
-
-                # Merge nowcast_data with obs_data
+                # Check if for type of observations name and make appropiate changes
+                observation_name = getObsDataName(obs_data)
+            
+                # Merge nowcast data with Obs data
                 obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
             else:
-                # if obs data is empty, just nowcast data become obs_data, and observation_name is None
+                # Just use nowcast data as obs data in cases where there is no obs data
                 obs_data = nowcast_data
                 observation_name = None
         else:
-            # if nowcast data is empty, check if obs_data is also empty
             if not obs_data.empty:
-                # check if obs_data.columns id buoy. If it is search for wave_height, else search for water_level
-                if 'ocean_buoy_wave_height' in obs_data.columns:
-                    observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
-                else:
-                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
+                # Check if for type of observations name and make appropiate changes
+                observation_name = getObsDataName(obs_data)
             else:
-                # if obs_data is empty, observation_name is None
+                # if obs_data empty observation_name = None
                 observation_name = None
 
         # replace any None values with np.nan, in both DataFrames
@@ -478,6 +466,24 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # Return Pandas dataframe
         return ret_val
+
+    def getObsDataName(obs_data):
+        """
+        Gets the observed name.
+
+        :param obs_data:
+        :return: observation_name
+        """
+        if 'ocean_buoy_wave_height' in obs_data.columns:
+            observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
+        else:
+            observation_name = [s for s in obs_data.columns.values if 'water_level' in s]
+            if len(observation_name) == 0:
+                observation_name = None
+            else:
+                observation_name = observation_name[0]
+
+        return(observation_name)
 
     def get_obs_station_data(self, station_name, start_date, end_date) -> pd.DataFrame:
         """
