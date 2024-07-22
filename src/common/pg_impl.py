@@ -332,7 +332,7 @@ class PGImplementation(PGUtilsMultiConnect):
         if not nowcast_data.empty:
             if not obs_data.empty:
                 # Check if for type of observations name and make appropiate changes
-                observation_name = getObsDataName(obs_data)
+                observation_name = self.get_obs_data_name(obs_data)
             
                 # Merge nowcast data with Obs data
                 obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
@@ -342,8 +342,8 @@ class PGImplementation(PGUtilsMultiConnect):
                 observation_name = None
         else:
             if not obs_data.empty:
-                # Check if for type of observations name and make appropiate changes
-                observation_name = getObsDataName(obs_data)
+                # Check if for type of observations name and make appropriate changes
+                observation_name = self.get_obs_data_name(obs_data)
             else:
                 # if obs_data empty observation_name = None
                 observation_name = None
@@ -467,7 +467,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # Return Pandas dataframe
         return ret_val
 
-    def getObsDataName(obs_data):
+    def get_obs_data_name(self, obs_data):
         """
         Gets the observed name.
 
@@ -478,12 +478,13 @@ class PGImplementation(PGUtilsMultiConnect):
             observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
         else:
             observation_name = [s for s in obs_data.columns.values if 'water_level' in s]
+
             if len(observation_name) == 0:
                 observation_name = None
             else:
                 observation_name = observation_name[0]
 
-        return(observation_name)
+        return observation_name
 
     def get_obs_station_data(self, station_name, start_date, end_date) -> pd.DataFrame:
         """
