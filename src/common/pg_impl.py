@@ -335,10 +335,12 @@ class PGImplementation(PGUtilsMultiConnect):
                 # check if obs_data.columns id buoy. If it is search for wave_height, else search for water_level
                 if 'ocean_buoy_wave_height' in obs_data.columns:
                     observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
-                elif 'water_level' in obs_data.columns:
-                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
                 else:
-                    observation_name = None
+                    observation_name = [s for s in obs_data.columns.values if 'water_level' in s]
+                    if len(observation_name) == 0:
+                        observation_name = None
+                    else:
+                        observation_name = observation_name[0]
 
                 # Merge nowcast_data with obs_data
                 obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
