@@ -290,15 +290,19 @@ class PGImplementation(PGUtilsMultiConnect):
         :param kwargs:
         :return:
         """
+        # calculate max_forecast_endtime from time_mark
+        max_forecast_endtime = (datetime.fromisoformat(kwargs['time_mark']) + timedelta(14)).isoformat()
+
         # get forecast data
-        forecast_data = self.get_forecast_station_data(kwargs['station_name'], kwargs['time_mark'], kwargs['data_source'], kwargs['instance_name'])
+        forecast_data = self.get_forecast_station_data(kwargs['station_name'], kwargs['time_mark'], max_forecast_endtime, kwargs['data_source'], kwargs['instance_name'])
 
         # derive start date from the time mark
         start_date = (datetime.fromisoformat(kwargs['time_mark']) - timedelta(4)).isoformat()
 
         # check for an error
         if forecast_data.empty:
-            end_date = kwargs['time_mark']
+            # If no forecast data add 120 hours (5 days) to end_date for the tidal predictions data
+            end_date = (datetime.fromisoformat(kwargs['time_mark']) + timedelta(5)).isoformat()
         else:
             # get end_date from last datetime in forecast data
             end_date = forecast_data['time_stamp'].iloc[-1]
@@ -331,8 +335,10 @@ class PGImplementation(PGUtilsMultiConnect):
                 # check if obs_data.columns id buoy. If it is search for wave_height, else search for water_level
                 if 'ocean_buoy_wave_height' in obs_data.columns:
                     observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
-                else:
+                elif 'water_level' in obs_data.columns:
                     observation_name = [s for s in obs_data.columns.values if 'water_level' in s][0]
+                else:
+                    observation_name = None
 
                 # Merge nowcast_data with obs_data
                 obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
@@ -364,8 +370,9 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # convert all values after the time mark to nan, in obs data, except in the time_stamp and tidal_predictions columns
         for col in obs_data.columns:
-            if col not in ('time_stamp', 'tidal_predictions'):
-                obs_data.loc[obs_data.time_stamp >= kwargs['time_mark'], col] = np.nan
+            if col not in ('time_stamp', 'tidal_predictions', 'tidal_gauge_water_level'):
+                timemark = " ".join(kwargs['time_mark'].split('T'))
+                obs_data.loc[obs_data.time_stamp >= timemark, col] = np.nan
             else:
                 continue
 
@@ -408,12 +415,13 @@ class PGImplementation(PGUtilsMultiConnect):
         # return the data to the caller
         return station_df.to_csv(index=False)
 
-    def get_forecast_station_data(self, station_name, time_mark, data_source, instance_name) -> pd.DataFrame:
+    def get_forecast_station_data(self, station_name, time_mark, max_forecast_endtime, data_source, instance_name) -> pd.DataFrame:
         """
         Gets the forcast station data
 
         :param station_name:
         :param time_mark:
+        :param max_forecast_endtime:
         :param data_source:
         :param instance_name:
         :return:
@@ -423,7 +431,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # Run query
         sql = f"SELECT * FROM get_forecast_timeseries_station_data(_station_name := '{station_name}', _timemark := '{time_mark}', " \
-              f"_data_source := '{data_source}',  _source_instance := '{instance_name}')"
+              f"_max_forecast_endtime := '{max_forecast_endtime}', _data_source := '{data_source}',  _source_instance := '{instance_name}')"
 
         # get the info
         station_data = self.exec_sql('apsviz_gauges', sql)
