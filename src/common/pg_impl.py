@@ -11,7 +11,7 @@
 
     Author: Phil Owen, RENCI.org
 """
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import dateutil.parser
 import pytz
 import pandas as pd
@@ -103,7 +103,9 @@ class PGImplementation(PGUtilsMultiConnect):
                     if item['met_class'] == 'tropical':
                         # get the number of days from the last tropical run to now
                         insertion_date = dateutil.parser.parse(item['insertion_date'])
-                        date_diff = pytz.utc.localize(datetime.now(tz=timezone.utc)) - insertion_date
+
+                        # get the age (in days) of when this run occurred
+                        date_diff = pytz.utc.localize(datetime.now()) - insertion_date
 
                         # is this young enough?
                         if date_diff.days < max_age:
@@ -328,16 +330,16 @@ class PGImplementation(PGUtilsMultiConnect):
         # get nowcast data
         nowcast_data = self.get_nowcast_station_data(kwargs['station_name'], start_date, end_date, nowcast_source, kwargs['instance_name'])
 
-        # If nowcast data exists merge it with obs data
+        # If nowcast data exists, merge it with obs data
         if not nowcast_data.empty:
             if not obs_data.empty:
-                # Check if for type of observations name and make appropiate changes
+                # Check if for type of observations name and make appropriate changes
                 observation_name = self.get_obs_data_name(obs_data)
             
                 # Merge nowcast data with Obs data
                 obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
             else:
-                # Just use nowcast data as obs data in cases where there is no obs data
+                # use nowcast data as obs data in cases where there is no obs data
                 obs_data = nowcast_data
                 observation_name = None
         else:
@@ -467,23 +469,31 @@ class PGImplementation(PGUtilsMultiConnect):
         # Return Pandas dataframe
         return ret_val
 
-    def get_obs_data_name(self, obs_data):
+    @staticmethod
+    def get_obs_data_name(obs_data):
         """
         Gets the observed name.
 
         :param obs_data:
         :return: observation_name
         """
+        # check if there is a wave height ocean buoy in the data
         if 'ocean_buoy_wave_height' in obs_data.columns:
+            # save the observation name
             observation_name = [s for s in obs_data.columns.values if 'wave_height' in s][0]
         else:
+            # save the observation name
             observation_name = [s for s in obs_data.columns.values if 'water_level' in s]
 
+            # if there was no observation name found
             if len(observation_name) == 0:
+                # empty the name
                 observation_name = None
             else:
+                # save the name
                 observation_name = observation_name[0]
 
+        # return the name to the caller
         return observation_name
 
     def get_obs_station_data(self, station_name, start_date, end_date) -> pd.DataFrame:
