@@ -11,7 +11,7 @@
 
     Author: Phil Owen, RENCI.org
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import dateutil.parser
 import pytz
 import pandas as pd
@@ -63,7 +63,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # if there was a run id specified in the request we are returning a workbench for only that run
+        # if there was a run id specified in the request, we are returning a workbench for only that run
         if 'run_id' in kwargs and kwargs['run_id'] != 'null':
             # get the catalog members for the run using the id
             sql = f"SELECT public.get_catalog_workbench(_run_id:='{kwargs['run_id']}')"
@@ -103,7 +103,7 @@ class PGImplementation(PGUtilsMultiConnect):
                     if item['met_class'] == 'tropical':
                         # get the number of days from the last tropical run to now
                         insertion_date = dateutil.parser.parse(item['insertion_date'])
-                        date_diff = pytz.utc.localize(datetime.utcnow()) - insertion_date
+                        date_diff = pytz.utc.localize(datetime.now(tz=timezone.utc)) - insertion_date
 
                         # is this young enough?
                         if date_diff.days < max_age:
@@ -146,7 +146,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # should we continue?
         if not ('Error' in workbench_data or 'Warning' in workbench_data):
-            # if the run id was specified use it. this also disables using the new workbench code
+            # if the run id was specified, use it. this also disables using the new workbench code
             if 'run_id' in kwargs and kwargs['run_id'] != 'null':
                 wb_sql = f", _run_id:='{kwargs['run_id']}'"
             # if there was workbench data, use it in the data query
