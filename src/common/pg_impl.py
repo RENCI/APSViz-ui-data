@@ -386,7 +386,7 @@ class PGImplementation(PGUtilsMultiConnect):
         if nowcast_column_name in station_df.columns:
             if observation_name:
                 # get difference between observation and nowcast columns
-                station_df['Difference (APS-OBS)'] = station_df[observation_name] - station_df[nowcast_column_name]
+                station_df['Difference (APS-OBS)'] = station_df[nowcast_column_name] - station_df[observation_name]
 
                 # rename the columns
                 station_df.rename(columns={'time_stamp': 'time', nowcast_column_name: 'APS Nowcast', observation_name: 'Observations',
