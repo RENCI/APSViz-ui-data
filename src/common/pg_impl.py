@@ -296,7 +296,8 @@ class PGImplementation(PGUtilsMultiConnect):
         max_forecast_endtime = (datetime.fromisoformat(kwargs['time_mark']) + timedelta(14)).isoformat()
 
         # get forecast data
-        forecast_data = self.get_forecast_station_data(kwargs['station_name'], kwargs['time_mark'], max_forecast_endtime, kwargs['data_source'], kwargs['instance_name'])
+        forecast_data = self.get_forecast_station_data(kwargs['station_name'], kwargs['time_mark'], max_forecast_endtime, kwargs['data_source'],
+                                                       kwargs['instance_name'])
 
         # derive start date from the time mark
         start_date = (datetime.fromisoformat(kwargs['time_mark']) - timedelta(4)).isoformat()
@@ -335,7 +336,7 @@ class PGImplementation(PGUtilsMultiConnect):
             if not obs_data.empty:
                 # Check if for type of observations name and make appropriate changes
                 observation_name = self.get_obs_data_name(obs_data)
-            
+
                 # Merge nowcast data with Obs data
                 obs_data = obs_data.merge(nowcast_data, on='time_stamp', how='outer')
             else:

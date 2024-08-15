@@ -247,7 +247,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
 
     try:
         logger.debug(
-            'Input params - run_id: %s, grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
+            'Params - run_id: %s, grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
             'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s', run_id, grid_type, event_type, instance_name, met_class,
             storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit)
 
@@ -272,7 +272,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
         # if there was a run id specified make it a wildcard
         if run_id is not None:
             # add in the new workbench retrieval flag
-            #kwargs.update({'use_new_wb': False})
+            # kwargs.update({'use_new_wb': False})
             kwargs.update({'run_id': run_id + '%'})
 
         # try to make the call for records
