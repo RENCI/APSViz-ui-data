@@ -77,7 +77,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
             # create the sql to get the latest runs for the workbench lookup
             sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
-                       f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, _project_code:=" \
+                       f"_physical_location:={kwargs['physical_location']}, _ensemble_name:='{kwargs['ensemble_name']}', _project_code:=" \
                        f"{kwargs['project_code']})"
 
             # get the max age
@@ -96,9 +96,6 @@ class PGImplementation(PGUtilsMultiConnect):
             else:
                 # for each of the entries returned
                 for item in ret_val:
-                    # interrogate the results we are looking to get this down to the latest relevant tropical run
-                    # or the latest synoptic run catalog member.
-
                     # is there a tropical run and is it too old to display?
                     if item['met_class'] == 'tropical':
                         # get the number of days from the last tropical run to now
@@ -140,6 +137,9 @@ class PGImplementation(PGUtilsMultiConnect):
         """
         # init the return
         ret_val: dict = {}
+
+        # TODO: force ofcl ensembles for now
+        kwargs['ensemble_name'] = 'ofcl'
 
         # get the new workbench data
         workbench_data: dict = self.get_workbench_data(**kwargs)
@@ -221,7 +221,7 @@ class PGImplementation(PGUtilsMultiConnect):
                     kwargs.update({param: 'null'})
 
             # add in the max age int
-            kwargs.update({'max_age': 1})
+            kwargs.update({'max_age': 3})
 
             # try to make the call for records
             ret_val = self.get_terria_map_workbench_data(**kwargs)
