@@ -138,12 +138,10 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # TODO: force ofcl ensembles for now
-        kwargs['ensemble_name'] = 'ofcl'
-
         # get the new workbench data
         workbench_data: dict = self.get_workbench_data(**kwargs)
 
+        # init the workbench sql statement storage
         wb_sql: str = ""
 
         # should we continue?
@@ -221,7 +219,7 @@ class PGImplementation(PGUtilsMultiConnect):
                     kwargs.update({param: 'null'})
 
             # add in the max age int
-            kwargs.update({'max_age': 3})
+            kwargs.update({'max_age': 1})
 
             # try to make the call for records
             ret_val = self.get_terria_map_workbench_data(**kwargs)
