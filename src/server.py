@@ -59,8 +59,8 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                       advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
                                       end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                      product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
-                                      use_new_wb: Union[bool, None] = Query(default=False),
+                                      ensemble_name: Union[str, None] = Query(default=None), product_type: Union[str, None] = Query(default=None),
+                                      limit: Union[int, None] = Query(default=7), use_new_wb: Union[bool, None] = Query(default=False),
                                       use_v3_sp: Union[bool, None] = Query(default=False)) -> json:
     """
     Gets the json formatted terria map UI catalog data.
@@ -75,6 +75,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
+    <br/>&nbsp;&nbsp;&nbsp;ensemble_name: The name of the run ensemble
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
@@ -94,7 +95,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
 
         # create the param list
         params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
-                        'project_code', 'product_type', 'limit']
+                        'project_code', 'product_type', 'limit', 'ensemble_name']
 
         # loop through the SP params passed in
         for param in params:
@@ -218,6 +219,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
                                              advisory_number: Union[str, None] = Query(default=None),
                                              run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
                                              project_code: Union[str, None] = Query(default=None),
+                                             ensemble_name: Union[str, None] = Query(default=None),
                                              product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
                                              use_new_wb: Union[bool, None] = Query(default=False),
                                              use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
@@ -236,6 +238,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
+    <br/>&nbsp;&nbsp;&nbsp;ensemble_name: The name of the run ensemble
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
@@ -248,15 +251,15 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
     try:
         logger.debug(
             'Params - run_id: %s, grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
-            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s', run_id, grid_type, event_type, instance_name, met_class,
-            storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit)
+            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s, ensemble_name: %s', run_id, grid_type, event_type, instance_name, met_class,
+            storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit, ensemble_name)
 
         # init the kwargs variable
         kwargs: dict = {}
 
         # create the param list
         params: list = ['run_id', 'grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date',
-                        'end_date', 'project_code', 'product_type', 'limit']
+                        'end_date', 'project_code', 'product_type', 'limit', 'ensemble_name']
 
         # loop through the SP params passed in
         for param in params:
@@ -310,6 +313,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                                            storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                            advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
                                            end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
+                                           ensemble_name: Union[str, None] = Query(default=None),
                                            product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
                                            use_new_wb: Union[bool, None] = Query(default=False),
                                            use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
@@ -327,6 +331,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     <br/>&nbsp;&nbsp;&nbsp;run_date: Filter by the run date in the form of yyyy-mm-dd
     <br/>&nbsp;&nbsp;&nbsp;end_date: Filter by the data between the run date and end date
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code
+    <br/>&nbsp;&nbsp;&nbsp;ensemble_name: The name of the run ensemble
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;limit: Limit the number of catalog records returned in days (default is 7)
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
@@ -344,7 +349,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
 
     # create the param list
     params: list = ['grid_type', 'event_type', 'instance_name', 'met_class', 'storm_name', 'cycle', 'advisory_number', 'run_date', 'end_date',
-                    'project_code', 'product_type', 'limit']
+                    'project_code', 'product_type', 'limit', 'ensemble_name']
 
     # loop through the SP params passed in
     for param in params:
