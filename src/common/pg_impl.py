@@ -76,7 +76,7 @@ class PGImplementation(PGUtilsMultiConnect):
             run_id: str = ''
 
             # create the sql to get the latest runs for the workbench lookup
-            sql: str = f"SELECT public.get_latest_runs_test(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
+            sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
                        f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, _project_code:=" \
                        f"{kwargs['project_code']})"
 
