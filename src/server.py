@@ -39,7 +39,7 @@ APP = FastAPI(title='APSVIZ UI Data', version=app_version)
 log_level, log_path = LoggingUtil.prep_for_logging()
 
 # create a logger
-logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_format='medium', log_file_path=log_path)
+logger = LoggingUtil.init_logging("APSVIZ.UI-data.UI", level=log_level, line_format='medium', log_file_path=log_path)
 
 # declare app access details
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
