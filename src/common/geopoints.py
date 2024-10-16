@@ -75,8 +75,6 @@ class GeoPoint:
             # ensemble: nowcast
             # ndays: 0
 
-            print(kwargs)
-
             # init the named tuple for the nowcast call
             args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'],
                           kwargs['url'], bool(kwargs['keep_headers']), kwargs['ensemble'], int(kwargs['ndays']))
