@@ -1,0 +1,2 @@
+<TDS_SVR>thredds/dodsC/2023/al4/16/NCSC_SAB_v1.23/ht-ncfs.renci.org/ncsc123_nhc_al042023/ofcl/fort.63.nc
+#https://apsviz-thredds-dev.apps.renci.org/thredds/dodsC/2023/al4/16/NCSC_SAB_v1.23/ht-ncfs.renci.org/ncsc123_nhc_al042023/ofcl/fort.63.nc
