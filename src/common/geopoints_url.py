@@ -212,7 +212,7 @@ if __name__ == '__main__':
         df = main(args)
 
         if df is not None:
-            logger.debug('Final output df:%s:%s',df.head(),df.shape)
+            logger.debug('Final output df:%s:%s',df.head(5),df.shape)
         else:
             logger.debug('Final output df is None: No data found')
 
