@@ -12,9 +12,10 @@
     Author: Phil Owen, 10/11/2024
 """
 from collections import namedtuple
+import pandas as pd
+
 from src.common.logger import LoggingUtil
 import src.common.geopoints_url as gu
-import pandas as pd
 
 
 class GeoPoint:
@@ -93,9 +94,9 @@ class GeoPoint:
                     # assign the return.
                     ret_val = df_join.to_csv()
                 else:
-                    raise Exception('Error retrieving the forecast data.')
+                    raise RuntimeError('Error retrieving the forecast data.')
             else:
-                raise Exception('Error retrieving the nowcast data.')
+                raise RuntimeError('Error retrieving the nowcast data.')
         except Exception as e:
             self.logger.exception('Exception getting the geo-point data.')
             raise e
