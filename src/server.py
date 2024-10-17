@@ -419,7 +419,7 @@ def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union
                        variable_name: Union[str, None] = Query(default=None), kmax: Union[str, None] = Query(default='10'),
                        alt_urlsource: Union[str, None] = Query(default=None), url: Union[str, None] = Query(default=None),
                        keep_headers: Union[bool, None] = Query(default=True), ensemble: Union[str, None] = Query(default=None),
-                       ndays: Union[str, None] = Query(default='0')) -> PlainTextResponse:
+                       ndays: Union[str, None] = Query(default='0'), tds_svr: Union[str, None] = Query(default=None)) -> PlainTextResponse:
     """
     Returns the CSV formatted geo point data
 
@@ -432,17 +432,17 @@ def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union
     status_code: int = 200
 
     logger.debug(
-        'Input params - lon: %s, lat: %s, variable_name: %s, kmax: %s, alt_urlsource: %s, url: %s, keep_headers: %s, ensemble: %s, ndays: %s', lon,
-        lat, variable_name, kmax, alt_urlsource, url, keep_headers, ensemble, ndays)
+        'Input params - lon: %s, lat: %s, variable_name: %s, kmax: %s, alt_urlsource: %s, url: %s, keep_headers: %s, ensemble: %s, ndays: %s, tds_svr: %s', lon,
+        lat, variable_name, kmax, alt_urlsource, url, keep_headers, ensemble, ndays, tds_svr)
 
     try:
         # validate the input. these are not optional
-        if lat or lon or kmax or url or ndays:
+        if lat or lon or kmax or url or ndays or tds_svr:
             # init the kwargs variable
             kwargs: dict = {}
 
             # create the param list
-            params: list = ['lat', 'lon', 'variable_name', 'kmax', 'alt_urlsource', 'url', 'keep_headers', 'ensemble', 'ndays']
+            params: list = ['lat', 'lon', 'variable_name', 'kmax', 'alt_urlsource', 'url', 'keep_headers', 'ensemble', 'ndays', 'tds_svr']
 
             # loop through the SP params passed in
             for param in params:
