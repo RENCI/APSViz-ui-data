@@ -58,14 +58,16 @@ class GeoPoint:
             # init the return
             ret_val: str = ''
 
+            # build the url to the TDS data
+            tds_svr = 'https://' + kwargs['tds_svr'] + '/thredds' + kwargs['url']
+
             # create a named tuple for the args to mimic the cli input
             argsNT: namedtuple = namedtuple('argsNT',
-                                            ['lon', 'lat', 'variable_name', 'kmax', 'alt_urlsource', 'url', 'keep_headers',
-                                             'ensemble', 'ndays'])
+                                            ['lon', 'lat', 'variable_name', 'kmax', 'alt_urlsource', 'url', 'keep_headers', 'ensemble', 'ndays'])
 
             # init the named tuple for the nowcast call
-            args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'],
-                          kwargs['url'], bool(kwargs['keep_headers']), kwargs['ensemble'], int(kwargs['ndays']))
+            args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'], tds_svr,
+                          bool(kwargs['keep_headers']), kwargs['ensemble'], int(kwargs['ndays']))
 
             # call the function, check the return
             df_nc = gu.main(args)
@@ -78,7 +80,7 @@ class GeoPoint:
                 # init the named tuple for the forecast call
                 # note that the ensemble is defaulted for forecasts
                 args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'],
-                              kwargs['url'], bool(kwargs['keep_headers']), None, int(kwargs['ndays']))
+                              tds_svr, bool(kwargs['keep_headers']), None, int(kwargs['ndays']))
 
                 # call the function, check the return
                 df_fc = gu.main(args)
