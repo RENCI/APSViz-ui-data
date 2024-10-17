@@ -14,6 +14,7 @@
 from collections import namedtuple
 from src.common.logger import LoggingUtil
 import src.common.geopoints_url as gu
+import pandas as pd
 
 
 class GeoPoint:
@@ -61,20 +62,6 @@ class GeoPoint:
                                             ['lon', 'lat', 'variable_name', 'kmax', 'alt_urlsource', 'url', 'keep_headers',
                                              'ensemble', 'ndays'])
 
-            # test setup params
-            # k port-forward <timeseries DB> 5437:5432 &
-            # k port-forward <apsviz DB> 5434:5432 &
-
-            # lat: 32.8596518752
-            # lon: -79.6725155674
-            # variable_name: None
-            # kmax: 10
-            # alt_urlsource: None
-            # url: <TDS_SVR>/thredds/dodsC/2023/al4/16/NCSC_SAB_v1.23/ht-ncfs.renci.org/ncsc123_nhc_al042023/ofcl/fort.63.nc
-            # keep_headers: True
-            # ensemble: nowcast
-            # ndays: 0
-
             # init the named tuple for the nowcast call
             args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'],
                           kwargs['url'], bool(kwargs['keep_headers']), kwargs['ensemble'], int(kwargs['ndays']))
@@ -82,24 +69,36 @@ class GeoPoint:
             # call the function, check the return
             df_nc = gu.main(args)
 
-            # init the named tuple for the forecast call
-            # note that the ensemble is defaulted for forecasts
-            args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'],
-                          kwargs['url'], bool(kwargs['keep_headers']), None, int(kwargs['ndays']))
+            # if there was a valid response
+            if df_nc is not None:
+                # convert the index colum to be a datetime
+                df_nc.index = pd.to_datetime(df_nc.index)
 
-            # call the function, check the return
-            df_fc = gu.main(args)
+                # init the named tuple for the forecast call
+                # note that the ensemble is defaulted for forecasts
+                args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'],
+                              kwargs['url'], bool(kwargs['keep_headers']), None, int(kwargs['ndays']))
 
-            # join the results
-            df_join = df_nc.join(df_fc, how='outer')
+                # call the function, check the return
+                df_fc = gu.main(args)
 
-            # assign the return.
-            ret_val = df_join.to_csv()
+                # if there was a valid response
+                if df_fc is not None:
+                    # convert the index colum to be a datetime
+                    df_fc.index = pd.to_datetime(df_fc.index)
 
-        except Exception:
+                    # join the results
+                    df_join = df_nc.join(df_fc, how='outer')
+
+                    # assign the return.
+                    ret_val = df_join.to_csv()
+                else:
+                    raise Exception('Error retrieving the forecast data.')
+            else:
+                raise Exception('Error retrieving the nowcast data.')
+        except Exception as e:
             self.logger.exception('Exception getting the geo-point data.')
-
-        self.logger.debug('End')
+            raise e
 
         # return the data
         return ret_val
