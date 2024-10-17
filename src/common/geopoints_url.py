@@ -137,7 +137,8 @@ def main(args):
     logger.debug('Selected nearest neighbors values is: %s', nearest_neighbors)
 
     if len(new_urls) ==0:
-        logger.exit('No URLs identified given the input URL: %s. Abort', url)
+        logger.error('No URLs identified given the input URL: %s. Abort', url)
+        sys.exit(1)
 
     data_list=list()
     exclude_list=list()
@@ -156,18 +157,21 @@ def main(args):
             pass
     logger.info('Fetching Runtime was: %s seconds', tm.time()-t0)
 
-    df=pd.concat(data_list,axis=0)
-    df.columns=[headername]
-    df = (df.reset_index()
-        .drop_duplicates(subset='index', keep='last')
-        .set_index('index').sort_index())
-    df_excluded=pd.concat(exclude_list,axis=0)
-
-    df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
-    df.index.name='time'
-
-    logger.debug('Dimension of final data array: %s', df.shape)
-    logger.debug('Dimension of excluded URL list array: %s', df_excluded.shape)
+    #If absolutely nothing comes back return a None
+    try:
+        df=pd.concat(data_list,axis=0)
+        df.columns=[headername]
+        df = (df.reset_index()
+            .drop_duplicates(subset='index', keep='last')
+            .set_index('index').sort_index())
+        df_excluded=pd.concat(exclude_list,axis=0)
+        df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
+        df.index.name='time'
+        logger.debug('Dimension of final data array: %s', df.shape)
+        logger.debug('Dimension of excluded URL list array: %s', df_excluded.shape)
+    except ValueError:
+        logger.info('No data found for the specified lon/lat air. Return None')
+        df=None
 
     # Final data outputs
     # df.to_csv('Product_data_geopoints.csv')
@@ -207,7 +211,10 @@ if __name__ == '__main__':
         # Call the runner
         df = main(args)
 
-        logger.debug('Final output df:%s:%s',df.head(),df.shape)
+        if df is not None:
+            logger.debug('Final output df:%s:%s',df.head(),df.shape)
+        else:
+            logger.debug('Final output df is None: No data found')
 
     except Exception:
         logger.exception("Exit: exception occured")

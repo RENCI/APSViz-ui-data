@@ -80,7 +80,7 @@ def generate_six_hour_time_castings_from_range(time_range)->list:
     keep_hours=[0,6,12,18]
     starttime = dt.datetime.strptime(time_range[0],'%Y-%m-%d %H:%M:%S')
     stoptime = dt.datetime.strptime(time_range[1],'%Y-%m-%d %H:%M:%S')
-    pdtime=pd.date_range(start=starttime, end=stoptime,freq='H') # Doesnt land on 00,06,12,18
+    pdtime=pd.date_range(start=starttime, end=stoptime,freq='h') # Doesnt land on 00,06,12,18
     list_of_times=list()
     for time in pdtime:
         if time.hour in keep_hours:

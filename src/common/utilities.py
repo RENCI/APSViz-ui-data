@@ -278,12 +278,15 @@ def WaterLevelReductions(t, data_list, final_weights):
     A final df is returned with index=time and a single column for each of the
     input test points (some of which may be partially or completely nan)
     """
-    final_list = list()
-    for index,dataseries,weights in zip(range(0,len(data_list)), data_list,final_weights):
-        reduced_data = np.matmul(dataseries.values, weights.T)
-        df = pd.DataFrame(reduced_data, index=t, columns=[f'P{index+1}'])
-        final_list.append(df)
-    df_final_data = pd.concat(final_list, axis=1)
+    try:
+        final_list = list()
+        for index,dataseries,weights in zip(range(0,len(data_list)), data_list,final_weights):
+            reduced_data = np.matmul(dataseries.values, weights.T)
+            df = pd.DataFrame(reduced_data, index=t, columns=[f'P{index+1}'])
+            final_list.append(df)
+        df_final_data = pd.concat(final_list, axis=1)
+    except Exception as e:
+        df_final_data=None
     return df_final_data
 
 def GenerateMetadata(agresults):
