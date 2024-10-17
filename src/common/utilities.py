@@ -22,6 +22,8 @@ import time as tm
 # load the logger class
 from src.common.logger import LoggingUtil
 
+# pylint: skip-file
+
 # get the log level and directory from the environment (or default).
 log_level, log_path = LoggingUtil.prep_for_logging()
 

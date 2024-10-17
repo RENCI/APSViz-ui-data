@@ -11,7 +11,7 @@
 # This helper set of functions takes times,offsets,urls as possible inputs and returns a list of URLs that may be passed
 # to the fetch_adcirc_data methods. If the Caller wants to process a LIST of Urls, just call this repeatedly
 # then aggregate and check duplicates 
-# 
+#
 
 import os,sys
 import numpy as np
@@ -20,6 +20,8 @@ import datetime as dt
 
 import src.common.utilities as utilities
 from argparse import ArgumentParser
+
+# pylint: skip-file
 
 # create a logger
 logger = utilities.logger
