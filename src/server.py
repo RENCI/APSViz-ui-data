@@ -458,7 +458,7 @@ def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union
             # if the call was successful
             if len(ret_val) == 0:
                 # set the Warning message and the return status
-                ret_val = 'Warning: No geo point data found using the criteria selected.'
+                ret_val = 'Warning: No geo point data found at that point.'
         else:
             # set the error message
             ret_val = 'Error Invalid input. Insure that all input fields are populated.'
