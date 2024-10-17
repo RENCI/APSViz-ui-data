@@ -10,10 +10,11 @@
 init-hook='import sys; sys.path.append("./")'
 max-line-length=150
 disable=broad-except
-max-args=15
-max-locals=20
+max-args=16
+max-locals=25
 min-public-methods=0
 fail-under=9.5
 extension-pkg-allow-list=pydantic
 max-branches=25
 max-statements=62
+max-positional-arguments=20

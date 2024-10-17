@@ -7,14 +7,18 @@
 # SPDX-License-Identifier: MIT
 
 pydantic==2.9.2
-fastapi==0.115.0
-uvicorn==0.30.6
+fastapi==0.115.2
+uvicorn==0.32.0
 pyyaml==6.0.2
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.10
 pandas==2.2.3
-numpy==1.26.4
+numpy==2.1.2
 pyjwt==2.9.0
-pylint==3.3.0
+pylint==3.3.1
 pytest==8.3.3
 requests==2.32.3
 pytz==2024.2
+scipy==1.14.1
+xarray==2024.9.0
+netcdf4==1.7.1.post2
+pydap==3.5

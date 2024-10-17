@@ -17,7 +17,7 @@ Website/services that return data used to populate the [APSViz TerriaMap UI](htt
 [![RENCI License](https://img.shields.io/badge/License-RENCI-blue.svg)](https://www.renci.org/)
 #### Components and versions...
 [![Python](https://img.shields.io/badge/Python-3.12.6-orange)](https://github.com/python/cpython)
-[![Linting Pylint](https://img.shields.io/badge/Pylint-%203.3.0-yellow)](https://github.com/PyCQA/pylint)
+[![Linting Pylint](https://img.shields.io/badge/Pylint-%203.3.1-yellow)](https://github.com/PyCQA/pylint)
 [![Pytest](https://img.shields.io/badge/Pytest-%208.3.3-blue)](https://github.com/pytest-dev/pytest)
 #### Build status..
 [![PyLint the codebase](https://github.com/RENCI/apsviz-ui-data/actions/workflows/pylint.yml/badge.svg)](https://github.com/RENCI/apsviz-ui-data/actions/workflows/pylint.yml)

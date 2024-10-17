@@ -27,6 +27,7 @@ from src.common.pg_impl import PGImplementation
 from src.common.security import Security
 from src.common.bearer import JWTBearer
 from src.common.utils import GenUtils
+from src.common.geopoints import GeoPoint
 
 # set the app version
 app_version = os.getenv('APP_VERSION', 'Version number not set')
@@ -38,7 +39,7 @@ APP = FastAPI(title='APSVIZ UI Data', version=app_version)
 log_level, log_path = LoggingUtil.prep_for_logging()
 
 # create a logger
-logger = LoggingUtil.init_logging("APSVIZ.ui-data.ui", level=log_level, line_format='medium', log_file_path=log_path)
+logger = LoggingUtil.init_logging("APSVIZ.UI-data.UI", level=log_level, line_format='medium', log_file_path=log_path)
 
 # declare app access details
 APP.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -251,8 +252,8 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
     try:
         logger.debug(
             'Params - run_id: %s, grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
-            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s, ensemble_name: %s', run_id, grid_type, event_type, instance_name, met_class,
-            storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit, ensemble_name)
+            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s, ensemble_name: %s', run_id, grid_type, event_type,
+            instance_name, met_class, storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit, ensemble_name)
 
         # init the kwargs variable
         kwargs: dict = {}
@@ -411,6 +412,69 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
     # return to the caller
     return FileResponse(path=file_path, filename=file_name, media_type='text/json', status_code=status_code,
                         background=BackgroundTask(GenUtils.cleanup, temp_file_path))
+
+
+@APP.get('/get_geo_point_data', status_code=200, response_model=None, response_class=PlainTextResponse)
+def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union[float, None] = Query(default=None),
+                       variable_name: Union[str, None] = Query(default=None), kmax: Union[str, None] = Query(default='10'),
+                       alt_urlsource: Union[str, None] = Query(default=None), url: Union[str, None] = Query(default=None),
+                       keep_headers: Union[bool, None] = Query(default=True), ensemble: Union[str, None] = Query(default=None),
+                       ndays: Union[str, None] = Query(default='0')) -> PlainTextResponse:
+    """
+    Returns the CSV formatted geo point data
+
+    Note that all fields are mandatory.
+
+    :return:
+    """
+    # init the return and html status code
+    ret_val: str = ''
+    status_code: int = 200
+
+    logger.debug(
+        'Input params - lon: %s, lat: %s, variable_name: %s, kmax: %s, alt_urlsource: %s, url: %s, keep_headers: %s, ensemble: %s, ndays: %s', lon,
+        lat, variable_name, kmax, alt_urlsource, url, keep_headers, ensemble, ndays)
+
+    try:
+        # validate the input. these are not optional
+        if lat or lon or kmax or url or ndays:
+            # init the kwargs variable
+            kwargs: dict = {}
+
+            # create the param list
+            params: list = ['lat', 'lon', 'variable_name', 'kmax', 'alt_urlsource', 'url', 'keep_headers', 'ensemble', 'ndays']
+
+            # loop through the SP params passed in
+            for param in params:
+                # add this parm to the list
+                kwargs.update({param: None if not locals()[param] else f'{locals()[param]}'})
+
+            # make the call to get the geo point data
+            gp = GeoPoint(logger)
+
+            # try to make the call for records
+            ret_val: str = gp.get_geo_point_data(**kwargs)
+
+            # if the call was successful
+            if len(ret_val) == 0:
+                # set the Warning message and the return status
+                ret_val = 'Warning: No geo point data found at that point.'
+        else:
+            # set the error message
+            ret_val = 'Error Invalid input. Insure that all input fields are populated.'
+
+    except Exception:
+        # return a failure message
+        ret_val = 'Exception detected trying to get geo point data.'
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/csv")
 
 
 @APP.get('/get_station_data', status_code=200, response_model=None, response_class=PlainTextResponse)
