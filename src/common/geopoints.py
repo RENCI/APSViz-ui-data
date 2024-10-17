@@ -59,7 +59,7 @@ class GeoPoint:
             ret_val: str = ''
 
             # build the url to the TDS data
-            tds_svr = 'https://' + kwargs['tds_svr'] + '/thredds' + kwargs['url']
+            tds_svr = 'http://' + kwargs['tds_svr'] + '/thredds' + kwargs['url']
 
             # create a named tuple for the args to mimic the cli input
             argsNT: namedtuple = namedtuple('argsNT',
