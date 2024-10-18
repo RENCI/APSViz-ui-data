@@ -102,6 +102,8 @@ class GeoPoint:
         except Exception as e:
             self.logger.exception('Exception getting the geo-point data.')
             raise e
+        finally:
+            self.logger.debug('End')
 
         # return the data
         return ret_val
