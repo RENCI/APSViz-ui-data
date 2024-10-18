@@ -101,6 +101,8 @@ def main(args):
     lat=args.lat
     nearest_neighbors=args.kmax
     ndays=args.ndays # Look back/forward 
+    
+    logger.info('Input URL word is %s',url)
 
     if variable_name is None:
         variable_name=guess_variable_name(url)
@@ -206,7 +208,7 @@ if __name__ == '__main__':
                            help='ndays to scan: Default=0, <0 means look back. >0 means look forward')
         args = parser.parse_args()
 
-    	# log the input args
+        # log the input args
         logger.debug('input args: %s',args)
 
         # Call the runner
