@@ -59,7 +59,7 @@ class GeoPoint:
             ret_val: str = ''
 
             # build the url to the TDS data
-            tds_svr = 'http://' + kwargs['tds_svr'] + '/thredds' + kwargs['url']
+            tds_svr = kwargs['tds_svr'] + kwargs['url']
 
             # create a named tuple for the args to mimic the cli input
             argsNT: namedtuple = namedtuple('argsNT',
@@ -74,6 +74,8 @@ class GeoPoint:
 
             # if there was a valid response
             if df_nc is not None:
+                self.logger.debug('df_nc: %s', df_nc)
+
                 # convert the index colum to be a datetime
                 df_nc.index = pd.to_datetime(df_nc.index)
 
@@ -87,6 +89,8 @@ class GeoPoint:
 
                 # if there was a valid response
                 if df_fc is not None:
+                    self.logger.debug('df_fc: %s', df_fc)
+
                     # convert the index colum to be a datetime
                     df_fc.index = pd.to_datetime(df_fc.index)
 
