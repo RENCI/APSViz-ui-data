@@ -53,7 +53,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # clean up connections and cursors
         PGUtilsMultiConnect.__del__(self)
 
-    def get_terria_map_workbench_data(self, **kwargs):
+    def get_map_workbench_data(self, **kwargs):
         """
         Gets the catalog workbench data
 
@@ -77,8 +77,8 @@ class PGImplementation(PGUtilsMultiConnect):
 
             # create the sql to get the latest runs for the workbench lookup
             sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
-                       f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, _project_code:=" \
-                       f"{kwargs['project_code']})"
+                       f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, " \
+                       f"_instance_name:={kwargs['instance_name']}, _project_code:={kwargs['project_code']})"
 
             # get the max age
             max_age: int = int(kwargs['max_age'])
@@ -128,9 +128,9 @@ class PGImplementation(PGUtilsMultiConnect):
         # return the data
         return ret_val
 
-    def get_terria_map_catalog_data(self, **kwargs):
+    def get_map_catalog_data(self, **kwargs):
         """
-        gets the catalog data for the terria map UI
+        gets the catalog data for the map UI
 
         :param **kwargs
         :return:
@@ -209,7 +209,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # are we using the new catalog workbench retrieval?
         if kwargs['use_new_wb']:
             # create the param list
-            params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
+            params: list = ['insertion_date', 'met_class', 'physical_location', 'instance_name', 'ensemble_name', 'project_code']
 
             # loop through the params for the SP
             for param in params:
@@ -222,7 +222,7 @@ class PGImplementation(PGUtilsMultiConnect):
             kwargs.update({'max_age': 1})
 
             # try to make the call for records
-            ret_val = self.get_terria_map_workbench_data(**kwargs)
+            ret_val = self.get_map_workbench_data(**kwargs)
 
             # check the return
             if ret_val == -1:
