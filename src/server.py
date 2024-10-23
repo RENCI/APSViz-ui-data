@@ -26,7 +26,7 @@ from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 from src.common.security import Security
 from src.common.bearer import JWTBearer
-from src.common.utils import GenUtils
+from src.common.utils import GenUtils, BrandName
 from src.common.geopoints import GeoPoint
 
 # set the app version
@@ -55,7 +55,7 @@ security = Security()
 
 
 @APP.get('/get_ui_data', status_code=200, response_model=None)
-async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
+async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
                                       advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
@@ -64,7 +64,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
                                       limit: Union[int, None] = Query(default=7), use_new_wb: Union[bool, None] = Query(default=False),
                                       use_v3_sp: Union[bool, None] = Query(default=False)) -> json:
     """
-    Gets the json formatted terria map UI catalog data.
+    Gets the json formatted map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ECFLOW grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
@@ -110,7 +110,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
         kwargs.update({'use_v3_sp': use_v3_sp})
 
         # try to make the call for records
-        ret_val = db_info.get_terria_map_catalog_data(**kwargs)
+        ret_val = db_info.get_map_catalog_data(**kwargs)
 
         # check the return for any detected errors or warnings
         if 'Error' in ret_val:
@@ -133,7 +133,7 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
 
     except Exception:
         # return a failure message
-        ret_val = {'Exception': 'Error detected trying to get the terria map catalog data.'}
+        ret_val = {'Exception': 'Error detected trying to get the map catalog data.'}
 
         # log the exception
         logger.exception(ret_val)
@@ -145,10 +145,74 @@ async def get_terria_map_catalog_data(grid_type: Union[str, None] = Query(defaul
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
+@APP.get('/get_ui_instance_name', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def get_ui_instance_name(site_branding: BrandName, instance_name: Union[str, None] = Query(default=None), reset: Union[bool, None] = Query(default=False),
+                                    ) -> PlainTextResponse:
+    """
+    Gets the default instance name value
+    <br/>Note: Valid instance names are less than 30 characters in length
+        <br/>&nbsp;&nbsp;&nbsp;site_branding: The branding of the website.
+        <br/>&nbsp;&nbsp;&nbsp;instance_name: The new instance name to be used
+        <br/>&nbsp;&nbsp;&nbsp;reset: Flag to remove the instance name from storage
+    """
+    # init the returns
+    ret_val: str = ''
+    status_code: int = 200
+
+    try:
+        # set the default file path
+        file_path: str = os.getenv('INSTANCE_NAME_FILE_PATH', '') + site_branding
+
+        # was the config file path found
+        if file_path is not None:
+            # if this was a reset or a data set request
+            if reset and os.path.exists(file_path):
+                # delete the config file
+                os.remove(file_path)
+
+            # set the instance name if it came in
+            elif instance_name is not None:
+                # if the instance_name too long
+                if len(instance_name) > 30:
+                    ret_val = 'Error: Instance name > 30 characters.'
+                else:
+                    # open the config file for writing
+                    with open(file_path, 'w') as fp:
+                        fp.write(instance_name)
+
+                        # save the instance name
+                        ret_val = instance_name
+
+            elif instance_name is None and os.path.exists(file_path):
+                # open the config file for reading
+                with open(file_path, 'r') as fp:
+                    # save the instance name in the file
+                    ret_val = fp.read()
+
+                    # if we encountered an empty file
+                    if ret_val == '':
+                        ret_val = "Error: No value found in storage."
+            else:
+                ret_val = "Error: No saved value found."
+        else:
+            logger.error('Error: Instance name file path not set.')
+
+    except Exception as e:
+        # log the issue
+        logger.exception(e)
+
+        # set the error return
+        ret_val = 'Error detected.'
+
+    # return to the caller
+    return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/plain")
+
+
 @APP.get('/get_catalog_workbench', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                physical_location: Union[str, None] = Query(default=None), ensemble_name: Union[str, None] = Query(default=None),
-                                project_code: Union[str, None] = Query(default=None), max_age: int = Query(default=1)) -> json:
+                                physical_location: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
+                                ensemble_name: Union[str, None] = Query(default=None),project_code: Union[str, None] = Query(default=None),
+                                max_age: int = Query(default=1)) -> json:
     """
     Gets the latest workbench
     <br/>Note: Leave filtering params empty if not desired.
@@ -156,6 +220,7 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
     <br/>&nbsp;&nbsp;&nbsp;insertion_date: The timestamp the run props were inserted into the database
     <br/>&nbsp;&nbsp;&nbsp;met_class: The meteorological class (synoptic or tropical)
     <br/>&nbsp;&nbsp;&nbsp;physical_location: The site that made the request (RENCI, PSC, etc.)
+    <br/>&nbsp;&nbsp;&nbsp;instance_name: Filter by the name of the ECFLOW instance name
     <br/>&nbsp;&nbsp;&nbsp;ensemble_name: The type of run (gfsforecast, nowcast, ofcl, etc.)
     <br/>&nbsp;&nbsp;&nbsp;project_code: The requesting project code (ecflow_test_renci, ncf, nopp, test, unc-crc, etc.)
     <br/>&nbsp;&nbsp;&nbsp;max_age: The maximum age of a tropical run in days.
@@ -167,14 +232,15 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
     status_code: int = 200
 
     try:
-        logger.debug('Input params - insertion_date: %s, met_class: %s, physical_location: %s, ensemble_name: %s, project_code: %s, max_age: %s',
-                     insertion_date, met_class, physical_location, ensemble_name, project_code, max_age)
+        logger.debug('Input params - insertion_date: %s, met_class: %s, physical_location: %s, instance_name: %s, ensemble_name: %s, project_code: '
+                     '%s, max_age: %s',
+                     insertion_date, met_class, physical_location, instance_name, ensemble_name, project_code, max_age)
 
         # init the kwargs variable
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['insertion_date', 'met_class', 'physical_location', 'ensemble_name', 'project_code']
+        params: list = ['insertion_date', 'met_class', 'physical_location', 'instance_name', 'ensemble_name', 'project_code']
 
         # loop through the SP params passed in
         for param in params:
@@ -185,7 +251,7 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
         kwargs.update({'max_age': max_age})
 
         # try to make the call for records
-        ret_val = db_info.get_terria_map_workbench_data(**kwargs)
+        ret_val = db_info.get_map_workbench_data(**kwargs)
 
         # check the return
         if ret_val == -1:
@@ -200,7 +266,7 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
 
     except Exception:
         # return a failure message
-        ret_val = {'Exception': 'Error detected trying to get the terria map catalog workbench data.'}
+        ret_val = {'Exception': 'Error detected trying to get the map catalog workbench data.'}
 
         # log the exception
         logger.exception(ret_val)
@@ -213,7 +279,7 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
 
 
 @APP.get('/get_ui_data_secure', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
-async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(default=None), grid_type: Union[str, None] = Query(default=None),
+async def get_ui_data_secure(run_id: Union[str, None] = Query(default=None), grid_type: Union[str, None] = Query(default=None),
                                              event_type: Union[str, None] = Query(default=None),
                                              instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                              storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
@@ -225,7 +291,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
                                              use_new_wb: Union[bool, None] = Query(default=False),
                                              use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
-    Gets the json formatted terria map UI catalog data.
+    Gets the json formatted map UI catalog data.
     4460-2024020500-gfsforecast
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the run ID
@@ -280,7 +346,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
             kwargs.update({'run_id': run_id + '%'})
 
         # try to make the call for records
-        ret_val = db_info.get_terria_map_catalog_data(**kwargs)
+        ret_val = db_info.get_map_catalog_data(**kwargs)
 
         # check the return
         if ret_val == -1:
@@ -295,7 +361,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
 
     except Exception:
         # return a failure message
-        ret_val = {'Exception': 'Error detected trying to get the terria map catalog data.'}
+        ret_val = {'Exception': 'Error detected trying to get the map catalog data.'}
 
         # log the exception
         logger.exception(ret_val)
@@ -308,7 +374,7 @@ async def get_terria_map_catalog_data_secure(run_id: Union[str, None] = Query(de
 
 
 @APP.get('/get_ui_data_file', status_code=200, response_model=None)
-async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(default='apsviz.json'),
+async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.json'),
                                            grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                                            instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                            storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
@@ -319,7 +385,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
                                            use_new_wb: Union[bool, None] = Query(default=False),
                                            use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
-    Returns the json formatted terria map UI catalog data in a file specified.
+    Returns the json formatted map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;file_name: The name of the output file (default is apsviz.json)
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the grid
@@ -372,7 +438,7 @@ async def get_terria_map_catalog_data_file(file_name: Union[str, None] = Query(d
 
     try:
         # try to make the call for records
-        ret_val: dict = db_info.get_terria_map_catalog_data(**kwargs)
+        ret_val: dict = db_info.get_map_catalog_data(**kwargs)
 
         # check the return for any detected errors or warnings
         if 'Error' in ret_val:

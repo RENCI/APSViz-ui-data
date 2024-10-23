@@ -14,6 +14,7 @@
 
 import os
 import shutil
+from enum import Enum
 
 
 class GenUtils:
@@ -49,3 +50,11 @@ class GenUtils:
         :return:
         """
         shutil.rmtree(file_path)
+
+
+class BrandName(str, Enum):
+    """
+    Class enum for k8s job type names
+    """
+    APSVIZ = 'APSViz'
+    noop = 'NOOP'
