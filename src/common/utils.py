@@ -57,4 +57,4 @@ class BrandName(str, Enum):
     Class enum for k8s job type names
     """
     APSVIZ = 'APSViz'
-    noop = 'NOOP'
+    NOPP = 'NOPP'
