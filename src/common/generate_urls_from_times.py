@@ -13,6 +13,12 @@
 # then aggregate and check duplicates 
 #
 
+"""
+    Time series extraction
+
+    Authors: Jeffrey L. Tilson
+"""
+
 import os,sys
 import numpy as np
 import pandas as pd
