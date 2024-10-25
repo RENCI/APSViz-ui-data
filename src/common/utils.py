@@ -14,7 +14,7 @@
 
 import os
 import shutil
-from enum import Enum
+from enum import EnumType
 
 
 class GenUtils:
@@ -22,6 +22,7 @@ class GenUtils:
     General utilities
 
     """
+
     @staticmethod
     def filter_catalog_past_runs(catalog_data: dict) -> dict:
         """
@@ -42,6 +43,40 @@ class GenUtils:
         return catalog_data
 
     @staticmethod
+    def handle_instance_name(request_type: str, name: str, enum_data: EnumType, reset: bool):
+        """
+        handles the instance name request
+
+        :param request_type:
+        :param name:
+        :param enum_data:
+        :param reset:
+        :return:
+        """
+        # set the apsviz file path
+        file_path: str = os.getenv('INSTANCE_NAME_FILE_PATH', '') + request_type
+
+        # if this was a apsviz operation
+        if reset and os.path.exists(file_path):
+            # delete the config file
+            os.remove(file_path)
+
+            # return the reset operation succeeded
+            ret_val = f'{request_type} reset operation performed'
+
+        # set the apsviz instance name
+        elif request_type is not None:
+            # open the config file for writing
+            with open(file_path, 'w', encoding='utf-8') as fp:
+                fp.write(str(enum_data(name).value))
+
+                # save the instance name
+                ret_val = f'{request_type} instance name set to: {enum_data(name).value}'
+        else:
+            ret_val = f'No {request_type} operation performed'
+        return ret_val
+
+    @staticmethod
     def cleanup(file_path: str):
         """
         removes the directory from the file system
@@ -50,11 +85,3 @@ class GenUtils:
         :return:
         """
         shutil.rmtree(file_path)
-
-
-class BrandName(str, Enum):
-    """
-    Class enum for k8s job type names
-    """
-    APSVIZ = 'APSViz'
-    NOPP = 'NOPP'
