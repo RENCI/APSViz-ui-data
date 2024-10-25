@@ -14,6 +14,7 @@ import json
 import os
 import uuid
 import csv
+from enum import EnumType
 
 from typing import Union
 
@@ -53,16 +54,20 @@ db_info: PGImplementation = PGImplementation(db_name, _logger=logger)
 # create a Security object
 security = Security()
 
+# get the dynamic pulldown values for instance names
+APSViz_InstanceNames: EnumType = db_info.get_instance_names('APSViz_InstanceNames')
+NOPP_InstanceNames: EnumType = db_info.get_instance_names('NOPP_InstanceNames', 'nopp')
+
 
 @APP.get('/get_ui_data', status_code=200, response_model=None)
 async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
-                                      instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                      storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
-                                      advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                      end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                      ensemble_name: Union[str, None] = Query(default=None), product_type: Union[str, None] = Query(default=None),
-                                      limit: Union[int, None] = Query(default=7), use_new_wb: Union[bool, None] = Query(default=False),
-                                      use_v3_sp: Union[bool, None] = Query(default=False)) -> json:
+                      instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
+                      storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
+                      advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
+                      end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
+                      ensemble_name: Union[str, None] = Query(default=None), product_type: Union[str, None] = Query(default=None),
+                      limit: Union[int, None] = Query(default=7), use_new_wb: Union[bool, None] = Query(default=False),
+                      use_v3_sp: Union[bool, None] = Query(default=False)) -> json:
     """
     Gets the json formatted map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
@@ -86,7 +91,7 @@ async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_t
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
 
-    # init the returned data and html status code
+    # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
@@ -146,12 +151,12 @@ async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_t
 
 
 @APP.get('/get_ui_instance_name', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
-async def get_ui_instance_name(site_branding: BrandName, instance_name: Union[str, None] = Query(default=None), reset: Union[bool, None] = Query(default=False),
-                                    ) -> PlainTextResponse:
+async def get_ui_instance_name(site_branding: BrandName,
+                               apsviz_instance_name: APSViz_InstanceNames = Query(default=None),
+                               nopp_instance_name: NOPP_InstanceNames = Query(default=None),
+                               reset: Union[bool, None] = Query(default=False)) -> PlainTextResponse:
     """
-    Gets the default instance name value
-    <br/>Note: Valid instance names are less than 30 characters in length
-        <br/>&nbsp;&nbsp;&nbsp;site_branding: The branding of the website.
+    Gets/Sets and reset the default instance name values
         <br/>&nbsp;&nbsp;&nbsp;instance_name: The new instance name to be used
         <br/>&nbsp;&nbsp;&nbsp;reset: Flag to remove the instance name from storage
     """
@@ -160,42 +165,12 @@ async def get_ui_instance_name(site_branding: BrandName, instance_name: Union[st
     status_code: int = 200
 
     try:
-        # set the default file path
-        file_path: str = os.getenv('INSTANCE_NAME_FILE_PATH', '') + site_branding
-
-        # was the config file path found
-        if file_path is not None:
-            # if this was a reset or a data set request
-            if reset and os.path.exists(file_path):
-                # delete the config file
-                os.remove(file_path)
-
-            # set the instance name if it came in
-            elif instance_name is not None:
-                # if the instance_name too long
-                if len(instance_name) > 30:
-                    ret_val = 'Error: Instance name > 30 characters.'
-                else:
-                    # open the config file for writing
-                    with open(file_path, 'w') as fp:
-                        fp.write(instance_name)
-
-                        # save the instance name
-                        ret_val = instance_name
-
-            elif instance_name is None and os.path.exists(file_path):
-                # open the config file for reading
-                with open(file_path, 'r') as fp:
-                    # save the instance name in the file
-                    ret_val = fp.read()
-
-                    # if we encountered an empty file
-                    if ret_val == '':
-                        ret_val = "Error: No value found in storage."
-            else:
-                ret_val = "Error: No saved value found."
-        else:
-            logger.error('Error: Instance name file path not set.')
+        if site_branding.value == 'APSViz':
+            # handle the get/set/reset of the APSViz instance name
+            ret_val = GenUtils.handle_instance_name(site_branding.value, apsviz_instance_name, reset)
+        elif site_branding.value == 'NOPP':
+            # handle the get/set/reset of the NOPP instance name
+            ret_val += GenUtils.handle_instance_name(site_branding.value, nopp_instance_name, reset)
 
     except Exception as e:
         # log the issue
@@ -211,7 +186,7 @@ async def get_ui_instance_name(site_branding: BrandName, instance_name: Union[st
 @APP.get('/get_catalog_workbench', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                                 physical_location: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
-                                ensemble_name: Union[str, None] = Query(default=None),project_code: Union[str, None] = Query(default=None),
+                                ensemble_name: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
                                 max_age: int = Query(default=1)) -> json:
     """
     Gets the latest workbench
@@ -227,14 +202,13 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
 
     :return:
     """
-    # init the returned data and html status code
+    # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
     try:
         logger.debug('Input params - insertion_date: %s, met_class: %s, physical_location: %s, instance_name: %s, ensemble_name: %s, project_code: '
-                     '%s, max_age: %s',
-                     insertion_date, met_class, physical_location, instance_name, ensemble_name, project_code, max_age)
+                     '%s, max_age: %s', insertion_date, met_class, physical_location, instance_name, ensemble_name, project_code, max_age)
 
         # init the kwargs variable
         kwargs: dict = {}
@@ -280,16 +254,13 @@ async def get_catalog_workbench(insertion_date: Union[str, None] = Query(default
 
 @APP.get('/get_ui_data_secure', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_ui_data_secure(run_id: Union[str, None] = Query(default=None), grid_type: Union[str, None] = Query(default=None),
-                                             event_type: Union[str, None] = Query(default=None),
-                                             instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                             storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
-                                             advisory_number: Union[str, None] = Query(default=None),
-                                             run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
-                                             project_code: Union[str, None] = Query(default=None),
-                                             ensemble_name: Union[str, None] = Query(default=None),
-                                             product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
-                                             use_new_wb: Union[bool, None] = Query(default=False),
-                                             use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
+                             event_type: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
+                             met_class: Union[str, None] = Query(default=None), storm_name: Union[str, None] = Query(default=None),
+                             cycle: Union[str, None] = Query(default=None), advisory_number: Union[str, None] = Query(default=None),
+                             run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
+                             project_code: Union[str, None] = Query(default=None), ensemble_name: Union[str, None] = Query(default=None),
+                             product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
+                             use_new_wb: Union[bool, None] = Query(default=False), use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
     Gets the json formatted map UI catalog data.
     4460-2024020500-gfsforecast
@@ -311,7 +282,7 @@ async def get_ui_data_secure(run_id: Union[str, None] = Query(default=None), gri
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     <br/>&nbsp;&nbsp;&nbsp;use_v3_sp: Use the UI v3 data stored procedure
     """
-    # init the returned data and html status code
+    # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
@@ -374,16 +345,14 @@ async def get_ui_data_secure(run_id: Union[str, None] = Query(default=None), gri
 
 
 @APP.get('/get_ui_data_file', status_code=200, response_model=None)
-async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.json'),
-                                           grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
-                                           instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
-                                           storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
-                                           advisory_number: Union[str, None] = Query(default=None), run_date: Union[str, None] = Query(default=None),
-                                           end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
-                                           ensemble_name: Union[str, None] = Query(default=None),
-                                           product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
-                                           use_new_wb: Union[bool, None] = Query(default=False),
-                                           use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
+async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.json'), grid_type: Union[str, None] = Query(default=None),
+                           event_type: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
+                           met_class: Union[str, None] = Query(default=None), storm_name: Union[str, None] = Query(default=None),
+                           cycle: Union[str, None] = Query(default=None), advisory_number: Union[str, None] = Query(default=None),
+                           run_date: Union[str, None] = Query(default=None), end_date: Union[str, None] = Query(default=None),
+                           project_code: Union[str, None] = Query(default=None), ensemble_name: Union[str, None] = Query(default=None),
+                           product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
+                           use_new_wb: Union[bool, None] = Query(default=False), use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
     Returns the json formatted map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
@@ -408,7 +377,7 @@ async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.j
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
 
-    # init the returned html status code
+    # init the returned HTML status code
     status_code: int = 200
 
     # init the kwargs variable
@@ -448,9 +417,9 @@ async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.j
             # set the returned status code
             status_code = 400
         else:
-            # was there a DB error
+            # if there was a DB error
             if ret_val == -1:
-                # set a error message
+                # set an error message
                 ret_val = {'Error': 'Database error getting catalog member data.'}
 
                 # set the status to a not found
@@ -493,17 +462,17 @@ def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union
 
     :return:
     """
-    # init the return and html status code
+    # init the return and HTML status code
     ret_val: str = ''
     status_code: int = 200
 
     logger.debug(
-        'Input params - lon: %s, lat: %s, variable_name: %s, kmax: %s, alt_urlsource: %s, url: %s, keep_headers: %s, ensemble: %s, ndays: %s, tds_svr: %s', lon,
-        lat, variable_name, kmax, alt_urlsource, url, keep_headers, ensemble, ndays, tds_svr)
+        'Input params - lon: %s, lat: %s, variable_name: %s, kmax: %s, alt_urlsource: %s, url: %s, keep_headers: %s, ensemble: %s, '
+        'ndays: %s, tds_svr: %s', lon, lat, variable_name, kmax, alt_urlsource, url, keep_headers, ensemble, ndays, tds_svr)
 
     try:
         # validate the input. these are not optional
-        if lat or lon or kmax or url or ndays or tds_svr:
+        if all(i and i is not None for i in [lat, lon, ensemble, url, tds_svr]):
             # init the kwargs variable
             kwargs: dict = {}
 
@@ -554,11 +523,10 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
 
     :return:
     """
-    # init the return and html status code
+    # init the return and HTML status code
     ret_val: str = ''
     status_code: int = 200
 
-    # example input - station name: 8651370, timemark: 2023-08-24T00:00:00, data_source: GFSFORECAST_WNAT_53K_V1.0
     try:
         # validate the input. nothing is optional
         if station_name or time_mark or data_source or instance_name or forcing_metclass:
@@ -576,7 +544,7 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
             # try to make the call for records
             ret_val: str = db_info.get_station_data(**kwargs)
 
-            # was the call successful
+            # if the call was successful
             if len(ret_val) == 0:
                 # set the Warning message and the return status
                 ret_val = 'Warning: No station data found using the criteria selected.'
@@ -610,7 +578,7 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
 
     :return:
     """
-    # init the return and html status code
+    # init the return and HTML status code
     ret_val: str = ''
     status_code: int = 200
 
@@ -644,7 +612,7 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
             # try to make the call for records
             ret_val: str = db_info.get_station_data(**kwargs)
 
-            # was the call successful
+            # if the call was successful
             if len(ret_val) == 0:
                 # set the Warning message and the return status
                 ret_val = 'Warning: No station data found using the criteria selected.'
@@ -688,7 +656,7 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
     <br/>&nbsp;&nbsp;&nbsp;filter_event_type: Filter out records by event type.
     <br/>&nbsp;&nbsp;&nbsp;limit: limit the number of records returned. only applicable when run_id is empty.
     """
-    # init the returned data and html status code
+    # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
@@ -720,7 +688,7 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
             # set the status to a server error
             status_code = 500
         else:
-            # did we get everything expected
+            # if everything expected came back
             if ret_val is not None and ret_val['catalogs'] is not None:
                 # remove non-PSC catalog items
                 ret_val = GenUtils.filter_catalog_past_runs(ret_val)
@@ -765,7 +733,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;psc_output: True if PSC output format is desired
     """
-    # init the returned data and html status code
+    # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
