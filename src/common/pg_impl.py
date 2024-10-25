@@ -12,11 +12,11 @@
     Author: Phil Owen, RENCI.org
 """
 from datetime import datetime, timedelta
+from enum import Enum, EnumType
 import dateutil.parser
 import pytz
 import pandas as pd
 import numpy as np
-from enum import Enum, EnumType
 
 from src.common.pg_utils_multi import PGUtilsMultiConnect
 from src.common.logger import LoggingUtil
