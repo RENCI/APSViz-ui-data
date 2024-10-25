@@ -167,6 +167,7 @@ async def get_ui_instance_name(site_branding: BrandName,
     status_code: int = 200
 
     try:
+        # determine which site branding we are updating for
         if site_branding.value == 'APSViz':
             # handle the get/set/reset of the APSViz instance name
             ret_val = GenUtils.handle_instance_name(site_branding.value, apsviz_instance_name, reset)
