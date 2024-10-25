@@ -16,6 +16,7 @@ import dateutil.parser
 import pytz
 import pandas as pd
 import numpy as np
+from enum import Enum, EnumType
 
 from src.common.pg_utils_multi import PGUtilsMultiConnect
 from src.common.logger import LoggingUtil
@@ -75,7 +76,7 @@ class PGImplementation(PGUtilsMultiConnect):
             # init the run id
             run_id: str = ''
 
-            # create the sql to get the latest runs for the workbench lookup
+            # create the SQL to get the latest runs for the workbench lookup
             sql: str = f"SELECT public.get_latest_runs(_insertion_date:={kwargs['insertion_date']}, _met_class:={kwargs['met_class']}, " \
                        f"_physical_location:={kwargs['physical_location']}, _ensemble_name:={kwargs['ensemble_name']}, " \
                        f"_instance_name:={kwargs['instance_name']}, _project_code:={kwargs['project_code']})"
@@ -141,7 +142,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # get the new workbench data
         workbench_data: dict = self.get_workbench_data(**kwargs)
 
-        # init the workbench sql statement storage
+        # init the workbench SQL statement storage
         wb_sql: str = ""
 
         # should we continue?
@@ -159,7 +160,7 @@ class PGImplementation(PGUtilsMultiConnect):
             else:
                 sp_name: str = 'public.get_terria_data_json'
 
-            # create the sql
+            # create the SQL
             sql: str = f"SELECT {sp_name}(_grid_type:={kwargs['grid_type']}, _event_type:={kwargs['event_type']}, " \
                        f"_instance_name:={kwargs['instance_name']}, _run_date:={kwargs['run_date']}, _end_date:={kwargs['end_date']}, " \
                        f"_limit:={kwargs['limit']}, _met_class:={kwargs['met_class']}, " \
@@ -273,7 +274,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return
         ret_val: dict = {}
 
-        # create the sql
+        # create the SQL
         sql: str = f"SELECT public.get_catalog_member_records(_run_id := {kwargs['run_id']}, _project_code := {kwargs['project_code']}, " \
                    f"_filter_event_type := {kwargs['filter_event_type']}, _limit := {kwargs['limit']});"
 
@@ -518,6 +519,37 @@ class PGImplementation(PGUtilsMultiConnect):
         if station_data != -1:
             # convert query output to Pandas dataframe
             ret_val = pd.DataFrame.from_dict(station_data, orient='columns')
+
+        # Return Pandas dataframe
+        return ret_val
+
+    def get_instance_names(self, name: str, project_code: str = None) -> EnumType:
+        """
+        Gets an Enum list of instance names for the UI pulldown
+
+        :param name:
+        :param project_code:
+        :return:
+        """
+        # init the return value:
+        ret_val = None
+
+        # prep the param for the SP
+        if project_code is None:
+            project_code = 'null'
+        else:
+            project_code = f"'{project_code}'"
+
+        # build the query
+        sql = f"SELECT * FROM get_instance_names(_project_code := {project_code});"
+
+        # get the info
+        enum_data = self.exec_sql('apsviz', sql)
+
+        # was it successful?
+        if enum_data != -1:
+            # convert query output to Pandas dataframe
+            ret_val = Enum(name, enum_data)
 
         # Return Pandas dataframe
         return ret_val
