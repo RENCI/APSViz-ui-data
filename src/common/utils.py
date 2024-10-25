@@ -14,7 +14,7 @@
 
 import os
 import shutil
-from enum import EnumType
+from enum import Enum, EnumType
 
 
 class GenUtils:
@@ -43,13 +43,12 @@ class GenUtils:
         return catalog_data
 
     @staticmethod
-    def handle_instance_name(request_type: str, name: str, enum_data: EnumType, reset: bool):
+    def handle_instance_name(request_type: str, instance_name: Enum, reset: bool):
         """
         handles the instance name request
 
         :param request_type:
-        :param name:
-        :param enum_data:
+        :param instance_name:
         :param reset:
         :return:
         """
@@ -65,15 +64,26 @@ class GenUtils:
             ret_val = f'{request_type} reset operation performed'
 
         # set the apsviz instance name
-        elif request_type is not None:
+        elif instance_name is not None:
             # open the config file for writing
             with open(file_path, 'w', encoding='utf-8') as fp:
-                fp.write(str(enum_data(name).value))
+                fp.write(instance_name.value)
 
                 # save the instance name
-                ret_val = f'{request_type} instance name set to: {enum_data(name).value}'
+                ret_val = f'{request_type} instance name set to: {instance_name}'
+        elif instance_name is None and os.path.exists(file_path):
+            # open the config file for reading
+            with open(file_path, 'r') as fp:
+                # save the instance name in the file
+                ret_val = fp.read()
+
+                # if we encountered an empty file
+                if ret_val == '':
+                    ret_val = "Error: No value found in storage."
         else:
-            ret_val = f'No {request_type} operation performed'
+            ret_val = f'Error: No {request_type} operation performed'
+
+        # return the result to the caller
         return ret_val
 
     @staticmethod
@@ -85,3 +95,11 @@ class GenUtils:
         :return:
         """
         shutil.rmtree(file_path)
+
+
+class BrandName(str, Enum):
+    """
+    Class enum for k8s job type names
+    """
+    APSVIZ = 'APSViz'
+    NOPP = 'NOPP'
