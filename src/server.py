@@ -156,9 +156,11 @@ async def get_ui_instance_name(site_branding: BrandName,
                                nopp_instance_name: NOPP_InstanceNames = Query(default=None),
                                reset: Union[bool, None] = Query(default=False)) -> PlainTextResponse:
     """
-    Gets/Sets and reset the default instance name values
-        <br/>&nbsp;&nbsp;&nbsp;instance_name: The new instance name to be used
-        <br/>&nbsp;&nbsp;&nbsp;reset: Flag to remove the instance name from storage
+    Gets, sets and resets the default instance name values
+        <br/>&nbsp;&nbsp;&nbsp;site_branding: The target site branding to operate on here.
+        <br/>&nbsp;&nbsp;&nbsp;apsviz_instance_name: The APSViz instance name to be used for update. Leave blank for retrieval.
+        <br/>&nbsp;&nbsp;&nbsp;nopp_instance_name: The NOPP instance name to be used for update. Leave blank for retrieval.
+        <br/>&nbsp;&nbsp;&nbsp;reset: Flag to remove the instance name from storage.
     """
     # init the returns
     ret_val: str = ''
