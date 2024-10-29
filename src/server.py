@@ -59,7 +59,7 @@ APSViz_InstanceNames: EnumType = db_info.get_instance_names('APSViz_InstanceName
 NOPP_InstanceNames: EnumType = db_info.get_instance_names('NOPP_InstanceNames', 'nopp')
 
 
-@APP.get('/get_ui_data', status_code=200, response_model=None)
+@APP.get('/get_ui_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                       storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
@@ -347,7 +347,7 @@ async def get_ui_data_secure(run_id: Union[str, None] = Query(default=None), gri
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/get_ui_data_file', status_code=200, response_model=None)
+@APP.get('/get_ui_data_file', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.json'), grid_type: Union[str, None] = Query(default=None),
                            event_type: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
                            met_class: Union[str, None] = Query(default=None), storm_name: Union[str, None] = Query(default=None),
@@ -452,7 +452,7 @@ async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.j
                         background=BackgroundTask(GenUtils.cleanup, temp_file_path))
 
 
-@APP.get('/get_geo_point_data', status_code=200, response_model=None, response_class=PlainTextResponse)
+@APP.get('/get_geo_point_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None, response_class=PlainTextResponse)
 def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union[float, None] = Query(default=None),
                        variable_name: Union[str, None] = Query(default=None), kmax: Union[str, None] = Query(default='10'),
                        alt_urlsource: Union[str, None] = Query(default=None), url: Union[str, None] = Query(default=None),
@@ -515,7 +515,7 @@ def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union
     return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/csv")
 
 
-@APP.get('/get_station_data', status_code=200, response_model=None, response_class=PlainTextResponse)
+@APP.get('/get_station_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None, response_class=PlainTextResponse)
 def get_station_data(station_name: Union[str, None] = Query(default=None), time_mark: Union[str, None] = Query(default=None),
                      data_source: Union[str, None] = Query(default=None), instance_name: Union[str, None] = Query(default=None),
                      forcing_metclass: Union[str, None] = Query(default=None)) -> PlainTextResponse:
@@ -569,7 +569,7 @@ def get_station_data(station_name: Union[str, None] = Query(default=None), time_
     return PlainTextResponse(content=ret_val, status_code=status_code, media_type="text/csv")
 
 
-@APP.get('/get_station_data_file', status_code=200, response_model=None)
+@APP.get('/get_station_data_file', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_station_data_file(file_name: Union[str, None] = Query(default='station.csv'), station_name: Union[str, None] = Query(default=None),
                                 time_mark: Union[str, None] = Query(default=None), data_source: Union[str, None] = Query(default=None),
                                 instance_name: Union[str, None] = Query(default=None),
@@ -648,7 +648,7 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
                         background=BackgroundTask(GenUtils.cleanup, temp_file_path))
 
 
-@APP.get('/get_catalog_member_records', status_code=200, response_model=None)
+@APP.get('/get_catalog_member_records', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_catalog_member_records(run_id: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
                                      filter_event_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
@@ -713,7 +713,7 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/get_pulldown_data', status_code=200, response_model=None)
+@APP.get('/get_pulldown_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                             instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
                             storm_name: Union[str, None] = Query(default=None), cycle: Union[str, None] = Query(default=None),
