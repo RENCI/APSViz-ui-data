@@ -284,6 +284,53 @@ class PGImplementation(PGUtilsMultiConnect):
         # return the data
         return ret_val
 
+    def get_station_level_offset(self, station_id: int, instance_name: str) -> float:
+        """
+        gets the offset level for a station
+
+        :param station_id:
+        :param instance_name:
+        :return:
+        """
+        ret_val: float = 0.0
+
+        # create the SQL
+        sql: str = f"SELECT * FROM public.get_station_level_offset(_station_id := {station_id}, _instance_name := '{instance_name}');"
+
+        # get the layer list
+        ret_val = self.exec_sql('apsviz', sql)
+
+        # if the call was unsuccessful
+        if ret_val == -1:
+            ret_val = 0.0
+
+        # return to the caller
+        return ret_val
+
+    def add_datum_level_offset(self, station_id: int, instance_name: str, station_df: pd.DataFrame):
+        """
+        add the level offset value for a station to the appropriate data columns
+
+        :param station_id:
+        :param instance_name:
+        :param station_df:
+        :return:
+        """
+        # get the water level offsets at the location
+        offset: float = self.get_station_level_offset(station_id, instance_name)
+
+        # if there was level offset data found for that point
+        if offset != 0:
+            # define the target columns that get the treatment
+            cols: list = ['Observations', 'NOAA Tidal Predictions']
+
+            # for each target column
+            for col in cols:
+                # if the col exists
+                if col in station_df.columns:
+                    # add in the level offset
+                    station_df[col] = station_df[col] + offset
+
     def get_station_data(self, **kwargs) -> str:
         """
         gets the station data.
@@ -403,6 +450,9 @@ class PGImplementation(PGUtilsMultiConnect):
             else:
                 # else if observation name is None rename tidal_predictions
                 station_df.rename(columns={'time_stamp': 'time', 'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
+
+        # add the station level offsets (if they exist)
+        self.add_datum_level_offset(kwargs['station_name'], kwargs['instance_name'], station_df)
 
         # return the data to the caller
         return station_df.to_csv(index=False)
