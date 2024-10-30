@@ -284,18 +284,19 @@ class PGImplementation(PGUtilsMultiConnect):
         # return the data
         return ret_val
 
-    def get_station_level_offset(self, station_id: int, instance_name: str) -> float:
+    def get_station_tidal_level_offset(self, station_id: int, instance_name: str) -> float:
         """
-        gets the offset level for a station
+        gets the tidal level offset for a station
 
         :param station_id:
         :param instance_name:
         :return:
         """
+        # init the return value
         ret_val: float = 0.0
 
         # create the SQL
-        sql: str = f"SELECT * FROM public.get_station_level_offset(_station_id := {station_id}, _instance_name := '{instance_name}');"
+        sql: str = f"SELECT * FROM public.get_station_tidal_level_offset(_station_id := {station_id}, _instance_name := '{instance_name}');"
 
         # get the layer list
         ret_val = self.exec_sql('apsviz', sql)
@@ -307,29 +308,26 @@ class PGImplementation(PGUtilsMultiConnect):
         # return to the caller
         return ret_val
 
-    def add_datum_level_offset(self, station_id: int, instance_name: str, station_df: pd.DataFrame):
+    def add_tidal_datum_level_offset(self, station_id: int, instance_name: str, station_df: pd.DataFrame):
         """
-        add the level offset value for a station to the appropriate data columns
+        get the tidal datum level offset value for a station and add it to the appropriate data columns
 
         :param station_id:
         :param instance_name:
         :param station_df:
         :return:
         """
-        # get the water level offsets at the location
-        offset: float = self.get_station_level_offset(station_id, instance_name)
+        # get the tidal level offsets at the location
+        tidal_offset: float = self.get_station_tidal_level_offset(station_id, instance_name)
 
-        # if there was level offset data found for that point
-        if offset != 0:
-            # define the target columns that get the treatment
-            cols: list = ['Observations', 'NOAA Tidal Predictions']
-
-            # for each target column
-            for col in cols:
+        # if there was a tidal level offset found for that point
+        if tidal_offset != 0:
+            # for each target column to get the treatment
+            for col in ['Observations', 'NOAA Tidal Predictions']:
                 # if the col exists
                 if col in station_df.columns:
                     # add in the level offset
-                    station_df[col] = station_df[col] + offset
+                    station_df[col] = station_df[col] + tidal_offset
 
     def get_station_data(self, **kwargs) -> str:
         """
@@ -452,7 +450,7 @@ class PGImplementation(PGUtilsMultiConnect):
                 station_df.rename(columns={'time_stamp': 'time', 'tidal_predictions': 'NOAA Tidal Predictions'}, inplace=True)
 
         # add the station level offsets (if they exist)
-        self.add_datum_level_offset(kwargs['station_name'], kwargs['instance_name'], station_df)
+        self.add_tidal_datum_level_offset(kwargs['station_name'], kwargs['instance_name'], station_df)
 
         # return the data to the caller
         return station_df.to_csv(index=False)
