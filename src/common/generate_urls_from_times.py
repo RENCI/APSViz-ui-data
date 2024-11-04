@@ -510,7 +510,7 @@ class generate_urls_from_times(object):
             url = construct_url_from_yaml( config, time, self.instance_name, ensemble, self.grid_name, hurricane_yaml_year=self.hurricane_yaml_year, hurricane_yaml_source=self.hurricane_yaml_source )
             if url not in urls:
                  urls.append(url)
-        logger.info('Constructed %s urls of ensemble %s based on the YML', urls, ensemble)
+        logger.debug('Constructed %s urls of ensemble %s based on the YML', urls, ensemble)
         return urls
 
 # Approach Used by ADDA
@@ -568,7 +568,7 @@ def main(args):
     config_name=args.config_name if args.config_name is not None else os.path.join(os.path.dirname(__file__), '../config', 'url_framework.yml')
 
     # Set up IO env
-    logger.info("Product Level Working in %s.", os.getcwd())
+    logger.debug("Product Level Working in %s.", os.getcwd())
 
     if args.instance_name is not None:
         logger.debug('Ignoring args.instance_name for the testing sequence')

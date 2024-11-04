@@ -257,7 +257,7 @@ def ComputeBasisRepresentation(xylist, agdict, agresults):
     agresults['final_weights']=final_weights
     agresults['final_jvals']=final_jvals
     agresults['final_status']=final_status
-    logger.debug('Compute of basis took: %s seconds', tm.time()-t0)
+    logger.info('Compute of basis took: %s seconds', tm.time()-t0)
     # Keep the list if the user needs to know after the fact
     outside_elements = np.argwhere(np.isnan(final_weights).all(axis=1)).ravel()
     agresults['outside_elements']=outside_elements
@@ -318,7 +318,7 @@ def WaterLevelSelection(t, data_list, final_weights):
             df_single[f'P{vertex}']=dataseries[vertex].values
             if df_single.count()[0] > 0 : # df.notna().sum() 
                 final_list.append(df_single)
-                logger.info('Inserted one chosen df_single with non nan values for index  %s at count number %s', index,count)
+                logger.debug('Inserted one chosen df_single with non nan values for index  %s at count number %s', index,count)
                 break
     logger.debug('Do Selection water series update')
     try:
@@ -386,7 +386,7 @@ def ConstructReducedWaterLevelData_from_ds(ds, agdict, agresults, variable_name=
     #logger.info('Selecting the weighted mean time series')
     #df_final=WaterLevelReductions(t, data_list, final_weights)
 
-    logger.info('Selecting the greedy alg: first in list with not all nans time series')
+    logger.debug('Selecting the greedy alg: first in list with not all nans time series')
     df_final=WaterLevelSelection(t, data_list, final_weights)
 
     t0=tm.time()
@@ -412,9 +412,9 @@ def Combined_pipeline(url, variable_name, lon, lat, nearest_neighbors=10):
     ds = f63_to_xr(url)
     agdict=get_adcirc_grid_from_ds(ds)
     agdict=attach_element_areas(agdict)
-    logger.debug('Compute_pipeline initiation: %s seconds', tm.time()-t0)
+    logger.info('Compute_pipeline initiation: %s seconds', tm.time()-t0)
 
-    logger.debug('Start annual KDTree pipeline LON: %s LAT: %s', geopoints[0][0], geopoints[0][1])
+    logger.info('Start annual KDTree pipeline LON: %s LAT: %s', geopoints[0][0], geopoints[0][1])
     agdict=ComputeTree(agdict)
     agresults=ComputeQuery(geopoints, agdict, kmax=nearest_neighbors)
     agresults=ComputeBasisRepresentation(geopoints, agdict, agresults)
