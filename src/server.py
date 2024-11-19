@@ -14,8 +14,8 @@ import json
 import os
 import uuid
 import csv
-from enum import EnumType
 
+from enum import EnumType
 from typing import Union
 
 from fastapi import FastAPI, Query, Depends
