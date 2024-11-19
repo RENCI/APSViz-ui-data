@@ -87,10 +87,6 @@ async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_t
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     <br/>&nbsp;&nbsp;&nbsp;use_v3_sp: Use the new v3 data stored procedure
     """
-    # pylint: disable=unused-argument
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-locals
-
     # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
@@ -376,10 +372,6 @@ async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.j
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     <br/>&nbsp;&nbsp;&nbsp;use_v3_sp: Use the new v3 data stored procedure
     """
-    # pylint: disable=unused-argument
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-locals
-
     # init the returned HTML status code
     status_code: int = 200
 
