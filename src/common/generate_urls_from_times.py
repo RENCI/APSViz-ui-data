@@ -79,7 +79,7 @@ class GenerateURLsFromTimes:
             # create a logger
             self.logger = LoggingUtil.init_logging(_app_name, level=log_level, line_format='medium', log_file_path=log_path)
 
-        self.utils = GeoUtilities(_logger=logger)
+        self.utils = GeoUtilities(_logger=self.logger)
 
         stoptime = None
 
@@ -130,10 +130,10 @@ class GenerateURLsFromTimes:
         self.stoptime = stoptime
         self.ndays = ndays
 
-        logger.debug('Current time (or advisory) range is %s to %s. Specified ndays is %s', self.starttime, self.stoptime, self.ndays)
+        self.logger.debug('Current time (or advisory) range is %s to %s. Specified ndays is %s', self.starttime, self.stoptime, self.ndays)
 
         if url is not None:
-            logger.debug('Current estimated ensemble: %s, instance: %s and gridname: %s', self.ensemble, self.instance_name, self.grid_name)
+            self.logger.debug('Current estimated ensemble: %s, instance: %s and gridname: %s', self.ensemble, self.instance_name, self.grid_name)
 
     def build_url_list_from_template_url_and_times(self, ensemble='nowcast') -> list:
         """
@@ -182,12 +182,16 @@ class GenerateURLsFromTimes:
         url = self.url
         time_value = self.stoptime  # Could also be an advisory
         offset = self.ndays
+
         if offset > 0:
-            logger.warning('Offset >0 specified: Behavior is not tested')
+            self.logger.warning('Offset >0 specified: Behavior is not tested')
+
         # timein = url.split('/')[-6] # Maybe need to check for a Hurricane Advisory also
         list_of_times = self.utils.generate_six_hour_time_steps_from_offset(time_value, offset)
         list_of_instances = self.utils.generate_list_of_instances(list_of_times, self.grid_name, self.instance_name)
+
         urls = list()
+
         for time, instance in zip(list_of_times, list_of_instances):
             words = url.split('/')
             words[-2] = ensemble
@@ -196,7 +200,7 @@ class GenerateURLsFromTimes:
             newurl = '/'.join(words)
             if newurl not in urls:
                 urls.append(newurl)
-        logger.debug('Constructed %s urls of ensemble %s', urls, ensemble)
+        self.logger.debug('Constructed %s urls of ensemble %s', urls, ensemble)
         return urls
 
     @staticmethod
@@ -231,20 +235,23 @@ class GenerateURLsFromTimes:
         try:
             config = self.load_config(self.config_name)
         except FileNotFoundError:  # OSError:
-            logger.exception('No URL structural config yml file found: %s: Abort', self.config_name)
+            raise f'No URL structural config yml file found: {self.config_name}: Abort'
 
         time_range = (self.starttime, self.stoptime)  # Could also be a range of advisories
         list_of_times = self.utils.generate_six_hour_time_steps_from_range(time_range)
         list_of_instances = self.utils.generate_list_of_instances(list_of_times, self.grid_name, self.instance_name)
         urls = list()
-        logger.debug('list_of_times: %s', list_of_times)
-        logger.debug('list_of_instances: %s', list_of_instances)
+
+        self.logger.debug('list_of_times: %s', list_of_times)
+        self.logger.debug('list_of_instances: %s', list_of_instances)
+
         for time, instance in zip(list_of_times, list_of_instances):
             url = self.utils.construct_url_from_yaml(config, time, self.instance_name, ensemble, self.grid_name,
                                                      hurricane_yaml_year=self.hurricane_yaml_year, hurricane_yaml_source=self.hurricane_yaml_source)
             if url not in urls:
                 urls.append(url)
-        logger.debug('Constructed %s urls of ensemble %s based on the YML', urls, ensemble)
+
+        self.logger.debug('Constructed %s urls of ensemble %s based on the YML', urls, ensemble)
         return urls
 
     # Approach Used by ADDA
@@ -281,17 +288,20 @@ class GenerateURLsFromTimes:
         time_value = self.stoptime  # Could also be an advisory
         offset = self.ndays
         if offset > 0:
-            logger.warning('Offset >0 specified: Behavior is not tested')
+            self.logger.warning('Offset >0 specified: Behavior is not tested')
 
         list_of_times = self.utils.generate_six_hour_time_steps_from_offset(time_value, offset)
         list_of_instances = self.utils.generate_list_of_instances(list_of_times, self.grid_name, self.instance_name)
         urls = list()
+
         for time, instance in zip(list_of_times, list_of_instances):
             url = self.utils.construct_url_from_yaml(config, time, self.instance_name, ensemble, self.grid_name,
                                                      hurricane_yaml_year=self.hurricane_yaml_year, hurricane_yaml_source=self.hurricane_yaml_source)
             if url not in urls:
                 urls.append(url)
-        logger.warning('Constructed %s urls of ensemble %s based on the YML and offset', urls, ensemble)
+
+        self.logger.warning('Constructed %s urls of ensemble %s based on the YML and offset', urls, ensemble)
+
         return urls
 
 

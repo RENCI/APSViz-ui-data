@@ -51,7 +51,7 @@ class GeoPointsURL:
         self.var_mapper = {'fort': 'zeta', 'swan': 'swan_HS'}
 
         # create the utility class
-        self.geo_utils = GeoUtilities(_logger=logger)
+        self.geo_utils = GeoUtilities(_logger=self.logger)
 
     def guess_variable_name(self, url) -> str:
         """
@@ -93,7 +93,7 @@ class GeoPointsURL:
 
             ensemble = words[-2]  # Usually nowcast, forecast, etc.
         except IndexError as e:
-            self.logger.exception(f'strip_ensemble_from_url Unexpected failure try next:')
+            self.logger.exception('strip_ensemble_from_url Unexpected failure try next')
 
         return ensemble
 
@@ -155,7 +155,7 @@ class GeoPointsURL:
         if args.ensemble is not None:  # Else use the ensemble present in the input URL. Allow us to input a forecast but choose the nowcast
             ensemble = args.ensemble
 
-        logger.debug('Input URL ensemble determined to be %s', ensemble)
+        self.logger.debug('Input URL ensemble determined to be %s', ensemble)
 
         # Try to set up proper header names for ADC/SWN and for nowcast/forecast
         dataproduct = 'Forecast'
