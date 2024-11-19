@@ -14,7 +14,7 @@
 
 import os
 import shutil
-from enum import Enum, EnumType
+from enum import Enum
 
 
 class GenUtils:
@@ -73,7 +73,7 @@ class GenUtils:
                 ret_val = f'{request_type} instance name set to: {instance_name}'
         elif instance_name is None and os.path.exists(file_path):
             # open the config file for reading
-            with open(file_path, 'r') as fp:
+            with open(file_path, 'r', encoding='utf-8') as fp:
                 # save the instance name in the file
                 ret_val = fp.read()
 

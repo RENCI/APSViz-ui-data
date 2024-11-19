@@ -6,7 +6,7 @@
 
 import os
 from collections import namedtuple
-import src.common.geopoints_url as gu
+from src.common.geopoints_url import GeoPointsURL
 
 
 def test_geopoints_url():
@@ -46,8 +46,11 @@ def test_geopoints_url():
         # init the named tuple for the nowcast call
         args = argsNT(-79.6725155674, 32.8596518752, None, 10, None, url, True, 'nowcast', 0)
 
+        # instantiate the geo-point URL class
+        gp_url = GeoPointsURL()
+
         # call the function
-        df_nc = gu.main(args)
+        df_nc = gp_url.run(args)
 
         # check the return
         assert df_nc is not None
@@ -55,8 +58,11 @@ def test_geopoints_url():
         # init the named tuple for the forecast call
         args = argsNT(-79.6725155674, 32.8596518752, None, 10, None, url, True, None, 0)
 
+        # instantiate the geo-point URL class
+        gp_url = GeoPointsURL()
+
         # call the function,
-        df_fc = gu.main(args)
+        df_fc = gp_url.run(args)
 
         # check the return
         assert df_fc is not None

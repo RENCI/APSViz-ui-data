@@ -89,5 +89,5 @@ def test_access():
     # execute the post
     ret_val = requests.get('http://localhost:4000/get_ui_data_secure?met_class=synoptic&limit=2', headers=auth_header, timeout=10)
 
-    # was the call unsuccessful
+    # assert if the call was unsuccessful
     assert ret_val.status_code == 200

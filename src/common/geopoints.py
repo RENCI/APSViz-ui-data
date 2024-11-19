@@ -15,7 +15,7 @@ from collections import namedtuple
 import pandas as pd
 
 from src.common.logger import LoggingUtil
-import src.common.geopoints_url as gu
+from src.common.geopoints_url import GeoPointsURL
 
 
 class GeoPoint:
@@ -38,8 +38,11 @@ class GeoPoint:
             # get the log level and directory from the environment.
             log_level, log_path = LoggingUtil.prep_for_logging()
 
+            # set the app name
+            app_name = "APSViz.UI-data.GeoPoint"
+
             # create a logger
-            self.logger = LoggingUtil.init_logging("APSViz.UI-data.GeoPoint", level=log_level, line_format='medium', log_file_path=log_path)
+            self.logger = LoggingUtil.init_logging(app_name, level=log_level, line_format='medium', log_file_path=log_path)
 
     def get_geo_point_data(self, **kwargs) -> str:
         """
@@ -69,8 +72,10 @@ class GeoPoint:
             args = argsNT(float(kwargs['lon']), float(kwargs['lat']), kwargs['variable_name'], int(kwargs['kmax']), kwargs['alt_urlsource'], tds_svr,
                           bool(kwargs['keep_headers']), kwargs['ensemble'], int(kwargs['ndays']))
 
+            gu = GeoPointsURL(_logger=self.logger)
+
             # call the function, check the return
-            df_nc = gu.main(args)
+            df_nc = gu.run(args)
 
             # if there was a valid response
             if df_nc is not None:
@@ -85,7 +90,7 @@ class GeoPoint:
                               tds_svr, bool(kwargs['keep_headers']), None, int(kwargs['ndays']))
 
                 # call the function, check the return
-                df_fc = gu.main(args)
+                df_fc = gu.run(args)
 
                 # if there was a valid response
                 if df_fc is not None:
