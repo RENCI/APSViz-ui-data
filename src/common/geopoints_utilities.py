@@ -11,15 +11,14 @@
 
     Authors: Jeffrey L. Tilson, Brian O. Blanton 8/2024
 """
-import sys
+import re
+import time as tm
+import datetime as dt
 import numpy as np
 import pandas as pd
-import re
 import xarray as xr
-import time as tm
+
 from scipy import spatial as sp
-from src.common.logger import LoggingUtil
-import datetime as dt
 
 
 class GeoUtilities:
@@ -34,55 +33,49 @@ class GeoUtilities:
         :param _app_name:
         :param _logger:
         """
-        # if a reference to a logger was passed in use it
-        if _logger is not None:
-            # get a handle to a logger
-            self.logger = _logger
-        else:
-            # get the log level and directory from the environment.
-            log_level, log_path = LoggingUtil.prep_for_logging()
+        # get a handle to a logger
+        self.logger = _logger
 
-            # create a logger
-            self.logger = LoggingUtil.init_logging(_app_name, level=log_level, line_format='medium', log_file_path=log_path)
-
-        self.Kmax = 10
+        self.k_max = 10
         self.got_kdtree = None
-        self.TOL = 10e-5
+        self.tol = 10e-5
         self.debug = True  # False
 
         # Specify available reanalysis years
-        self.Ymin = 1979
-        self.Ymax = 2023
-        self.YEARS = [item for item in range(self.Ymin, self.Ymax + 1)]
-        # logger.debug('utilities:Ymin, Ymax: %s, %s', Ymin,Ymax)
+        self.y_min = 1979
+        self.y_max = 2023
+        self.years = list(range(self.y_min, self.y_max + 1))
 
-        self.fileext = '.d0.no-unlim.T.rc.nc'
-        # self.fileext='.d4.no-unlim.T.rc.nc';
-        # self.logger.debug('utilities:fileext: %s', fileext)
+        # logger.debug('utilities:y_min, y_max: %s, %s', y_min,y_max)
+
+        self.file_ext = '.d0.no-unlim.T.rc.nc'
+        # self.file_ext='.d4.no-unlim.T.rc.nc';
+        # self.logger.debug('utilities:file_ext: %s', file_ext)
 
         # Default standard location is on the primary RENCI TDS
-        # self.urldirformat="https://tds.renci.org/thredds/dodsC/Reanalysis/ADCIRC/ERA5/hsofs/%d-post"
-        # self.urldirformat="https://tds.renci.org/thredds/dodsC/Reanalysis/ADCIRC/ERA5/ec95d/%d"
-        self.urldirformat = "https://tdsres.apps.renci.org/thredds/dodsC/ReanalysisV2/ADCIRC/ERA5/hsofs.V2/%d-post"
+        # self.url_dir_format="https://tds.renci.org/thredds/dodsC/Reanalysis/ADCIRC/ERA5/hsofs/%d-post"
+        # self.url_dir_format="https://tds.renci.org/thredds/dodsC/Reanalysis/ADCIRC/ERA5/ec95d/%d"
+        self.url_dir_format = "https://tdsres.apps.renci.org/thredds/dodsC/ReanalysisV2/ADCIRC/ERA5/hsofs.V2/%d-post"
 
         self.keep_hours = [0, 6, 12, 18]
 
     @staticmethod
     def get_adcirc_grid_from_ds(ds):
         """
-
+            creates an ad dict
         """
-        agdict: dict = {'lon': ds['x'][:], 'lat': ds['y'][:], 'ele': ds['element'][:, :] - 1, 'depth': ds['depth'][:], 'latmin': np.mean(ds['y'][:])}
+        ag_dict: dict = {'lon': ds['x'][:], 'lat': ds['y'][:], 'ele': ds['element'][:, :] - 1, 'depth': ds['depth'][:], 'latmin': np.mean(ds['y'][:])}
 
-        return agdict
+        return ag_dict
 
     @staticmethod
-    def attach_element_areas(agdict):
+    def attach_element_areas(ag_dict):
         """
+        gets the element areas
         """
-        x = agdict['lon'].values
-        y = agdict['lat'].values
-        e = agdict['ele'].values
+        x = ag_dict['lon'].values
+        y = ag_dict['lat'].values
+        e = ag_dict['ele'].values
 
         # COMPUTE GLOBAL DX,DY, Len, angles
         i1 = e[:, 0]
@@ -110,73 +103,77 @@ class GeoUtilities:
         b = np.sqrt(dx31 * dx31 + dy31 * dy31)
         c = np.sqrt(dx23 * dx23 + dy23 * dy23)
 
-        agdict['areas'] = (x1 * dy23 + x2 * dy31 + x3 * dy12) / 2.
-        agdict['edge_lengths'] = [a, b, c]
-        agdict['dl'] = np.mean(agdict['edge_lengths'], axis=0)
+        ag_dict['areas'] = (x1 * dy23 + x2 * dy31 + x3 * dy12) / 2.
+        ag_dict['edge_lengths'] = [a, b, c]
+        ag_dict['dl'] = np.mean(ag_dict['edge_lengths'], axis=0)
 
-        return agdict
+        return ag_dict
 
-    def basis2d_withinElement(self, phi):
+    def basis2d_within_element(self, phi):
         """
+        gets the basis 2d elements
         """
-        interior_status = np.all(phi[:] <= 1 + self.TOL, axis=1) & np.all(phi[:] >= 0 - self.TOL, axis=1)
+        interior_status = np.all(phi[:] <= 1 + self.tol, axis=1) & np.all(phi[:] >= 0 - self.tol, axis=1)
 
         return interior_status
 
     @staticmethod
-    def basis2d(agdict, xylist, j):
+    def basis2d(ag_dict, xy_list, j):
         """
+        performs basis 2D operations
+
         """
-        # check length of j and xylist
-        # check for the necessary arrays in agdict
-        phi = []
+        # check length of j and xy_list
+        # check for the necessary arrays in ag_dict
 
         # nodes for the elements in j
-        n3 = agdict['ele'][j]
+        n3 = ag_dict['ele'][j]
 
-        x = agdict['lon'][n3].values
+        x = ag_dict['lon'][n3].values
         x1 = x[:, 0]
         x2 = x[:, 1]
         x3 = x[:, 2]
 
-        y = agdict['lat'][n3].values
+        y = ag_dict['lat'][n3].values
         y1 = y[:, 0]
         y2 = y[:, 1]
         y3 = y[:, 2]
 
-        areaj = agdict['areas'][j]
-        xp = xylist[:, 0]
-        yp = xylist[:, 1]
+        area_j = ag_dict['areas'][j]
+        xp = xy_list[:, 0]
+        yp = xy_list[:, 1]
 
         # Basis function 1
-        a = (x2 * y3 - x3 * y2)
-        b = (y2 - y3)
+        a = (x2 * y3) - (x3 * y2)
+        b = y2 - y3
         c = -(x2 - x3)
-        phi0 = (a + b * xp + c * yp) / (2.0 * areaj)
+        phi0 = (a + b * xp + c * yp) / (2.0 * area_j)
 
         # Basis function 2
-        a = (x3 * y1 - x1 * y3)
-        b = (y3 - y1)
+        a = (x3 * y1) - (x1 * y3)
+        b = y3 - y1
         c = -(x3 - x1)
-        phi1 = (a + b * xp + c * yp) / (2.0 * areaj)
+        phi1 = (a + b * xp + c * yp) / (2.0 * area_j)
 
         # Basis function 3
-        a = (x1 * y2 - x2 * y1)
-        b = (y1 - y2)
+        a = (x1 * y2) - (x2 * y1)
+        b = y1 - y2
         c = -(x1 - x2)
-        phi2 = (a + b * xp + c * yp) / (2.0 * areaj)
+        phi2 = (a + b * xp + c * yp) / (2.0 * area_j)
 
         return np.array([phi0, phi1, phi2]).T
 
     @staticmethod
     def get_adcirc_time_from_ds(ds):
         """
+        gets the ADCIRC time from the dataset
         """
         return {'time': ds['time']}
 
     @staticmethod
     def f63_to_xr(url):
         """
+        returns the dataset without certain variables
         """
         dropvars = ['neta', 'nvel', 'max_nvdll', 'max_nvell']
 
@@ -185,8 +182,9 @@ class GeoUtilities:
     @staticmethod
     def get_adcirc_slice_from_ds(ds, v, it=0):
         """
+        gets ADCIRC data from the dataset
         """
-        advardict = {}
+        ad_var_dict = {}
 
         var = ds.variables[v]
 
@@ -199,44 +197,44 @@ class GeoUtilities:
             elif ds.variables[v].dims[0] == 'time':
                 var_d = var[:, it]  # the actual data
             else:
-                raise f'Unexpected leading variable name: {ds.variables[v].dims}. Abort'
+                raise Exception(f'Unexpected leading variable name: {ds.variables[v].dims}. Abort')
 
         # var_d[var_d.mask] = np.nan
-        advardict['var'] = var_d.data
+        ad_var_dict['var'] = var_d.data
 
-        return advardict
+        return ad_var_dict
 
-    def ComputeTree(self, agdict):
+    def compute_tree(self, ag_dict):
         """
-        Given lon,lat,ele in agdict,compute element centroids and
+        Given lon,lat,ele in ag_dict,compute element centroids and
         generate the ADCIRC grid KDTree
-        returns agdict with tree
+        returns ag_dict with tree
         """
 
         t0 = tm.time()
 
         try:
-            x = agdict['lon'].values.ravel()  # ravel; not needed
-            y = agdict['lat'].values.ravel()
-            e = agdict['ele'].values
+            x = ag_dict['lon'].values.ravel()  # ravel; not needed
+            y = ag_dict['lat'].values.ravel()
+            e = ag_dict['ele'].values
         except Exception as e:
-            self.logger.debug('Did not find lon,lat,ele data in agdict.')
-            sys.exit(1)
+            raise Exception('Did not find lon,lat,ele data in ag_dict.') from e
 
         xe = np.mean(x[e], axis=1)
         ye = np.mean(y[e], axis=1)
 
-        # Still want to build up the data for agdict, we just do not need the tree reevaluated for every year
+        # Still want to build up the data for ag_dict, we just do not need the tree reevaluated for every year
         if self.got_kdtree is None:
-            agdict['tree'] = tree = sp.KDTree(np.c_[xe, ye])
+            ag_dict['tree'] = tree = sp.KDTree(np.c_[xe, ye])
             self.got_kdtree = tree
         else:
-            agdict['tree'] = self.got_kdtree
+            ag_dict['tree'] = self.got_kdtree
 
         self.logger.debug('Build annual KDTree time is: %s seconds', tm.time() - t0)
-        return agdict
 
-    def ComputeQuery(self, xylist, agdict, kmax=10):
+        return ag_dict
+
+    def compute_query(self, xy_list, ag_dict, kmax=10):
         """
         Generate the kmax-set of nearest neighbors to each lon,lat pair in xylist.
         Each test point (each lon/lat pair) gets associated distance (dd) and element (j) objects
@@ -247,24 +245,24 @@ class GeoUtilities:
         j: num points by neighbors
         """
         t0 = tm.time()
-        agresults = dict()
+        ag_results = {}
 
-        dd, j = agdict['tree'].query(xylist, k=kmax)
+        dd, j = ag_dict['tree'].query(xy_list, k=kmax)
 
         if kmax == 1:
             dd = dd.reshape(-1, 1)
             j = j.reshape(-1, 1)
 
-        agresults['distance'] = dd
-        agresults['elements'] = j
-        agresults['number_neighbors'] = kmax
-        agresults['geopoints'] = xylist  # We shall use this later
+        ag_results['distance'] = dd
+        ag_results['elements'] = j
+        ag_results['number_neighbors'] = kmax
+        ag_results['geopoints'] = xy_list  # We shall use this later
 
         self.logger.debug('KDTree query of size: %s took: %s seconds', kmax, tm.time() - t0)
 
-        return agresults
+        return ag_results
 
-    def ComputeBasisRepresentation(self, xylist, agdict, agresults):
+    def compute_basis_representation(self, xy_list, ag_dict, ag_results):
         """
         For each test point with kmax number_neighbors, compute linear basis for
         each neighbor.
@@ -280,15 +278,15 @@ class GeoUtilities:
 
         # First, build all the basis weights and determine if it was an interior or not
         t0 = tm.time()
-        kmax = agresults['number_neighbors']
-        j = agresults['elements']
-        phival_list = list()
-        within_interior = list()
+        kmax = ag_results['number_neighbors']
+        j = ag_results['elements']
+        phival_list = []
+        within_interior = []
 
         for k_value in range(0, kmax):
-            phival = self.basis2d(agdict, xylist, j[:, k_value])
-            phival_list.append(phival)
-            within_interior.append(self.basis2d_withinElement(phival))
+            phi_val = self.basis2d(ag_dict, xy_list, j[:, k_value])
+            phival_list.append(phi_val)
+            within_interior.append(self.basis2d_within_element(phi_val))
 
         # detailed_weights_elements(phival_list, j)
 
@@ -303,15 +301,15 @@ class GeoUtilities:
             final_jvals[testvals] = jvals[testvals]
             final_status[testvals] = testvals[testvals]
 
-        agresults['final_weights'] = final_weights
-        agresults['final_jvals'] = final_jvals
-        agresults['final_status'] = final_status
+        ag_results['final_weights'] = final_weights
+        ag_results['final_jvals'] = final_jvals
+        ag_results['final_status'] = final_status
         self.logger.info('Compute of basis took: %s seconds', tm.time() - t0)
 
         # Keep the list if the user needs to know after the fact
         outside_elements = np.argwhere(np.isnan(final_weights).all(axis=1)).ravel()
-        agresults['outside_elements'] = outside_elements
-        return agresults
+        ag_results['outside_elements'] = outside_elements
+        return ag_results
 
     def detailed_weights_elements(self, phival_list, j):
         """
@@ -329,7 +327,7 @@ class GeoUtilities:
             self.logger.debug('Dataframe: %s', df.loc[2].to_frame().T)
 
     @staticmethod
-    def WaterLevelReductions(t, data_list, final_weights):
+    def water_level_reductions(t, data_list, final_weights):
         """
         Each data_list is a df for a single point containing 3 columns, one for
         each node in the containing element.
@@ -339,18 +337,20 @@ class GeoUtilities:
         input test points (some of which may be partially or completely nan)
         """
         try:
-            final_list = list()
+            final_list = []
+
             for index, dataseries, weights in zip(range(0, len(data_list)), data_list, final_weights):
                 reduced_data = np.matmul(dataseries.values, weights.T)
                 df = pd.DataFrame(reduced_data, index=t, columns=[f'P{index + 1}'])
                 final_list.append(df)
+
             df_final_data = pd.concat(final_list, axis=1)
-        except Exception as e:
+        except Exception:
             df_final_data = None
 
         return df_final_data
 
-    def WaterLevelSelection(self, t, data_list, final_weights):
+    def water_level_selection(self, t, data_list, final_weights):
         """
         Each data_list is a df for a single point containing three columns, one for each node in the containing element.
         We choose the first column in the list that has any number of values.
@@ -359,16 +359,16 @@ class GeoUtilities:
         A final df is returned with index=time and a single column for each of the
         input test points (some of which may be partially or completely nan)
         """
-        final_list = list()
+        final_list = []
 
         # Index is a loop over multiple possible lon/lat pairs
-        for index, dataseries, weights in zip(range(0, len(data_list)), data_list, final_weights):
+        for index, data_series, weights in zip(range(0, len(data_list)), data_list, final_weights):
             df_single = pd.DataFrame(index=t)
             count = 0
 
-            for vertex in dataseries.columns:  # Loop over the 3 vertices and their weights in order
+            for vertex in data_series.columns:  # Loop over the 3 vertices and their weights in order
                 count += 1
-                df_single[f'P{vertex}'] = dataseries[vertex].values
+                df_single[f'P{vertex}'] = data_series[vertex].values
                 if df_single.count()[0] > 0:  # df.notna().sum()
                     final_list.append(df_single)
                     self.logger.debug('Inserted one chosen df_single with non nan values for index  %s at count number %s', index, count)
@@ -384,7 +384,7 @@ class GeoUtilities:
         return df_final_data
 
     @staticmethod
-    def GenerateMetadata(agresults):
+    def generate_metadata(ag_results):
         """
         Here we want to simply help the user by reporting back the lon/lat values for each geo-point.
         This should be the same as the input dataset.
@@ -392,9 +392,10 @@ class GeoUtilities:
         -99999 indicates an element was not found in the grid.
         """
 
-        df_lonlat = pd.DataFrame(agresults['geopoints'], columns=['LON', 'LAT'])
-        df_elements = pd.DataFrame(agresults['final_jvals'] + 1, columns=['Element (1-based)'])
+        df_lonlat = pd.DataFrame(ag_results['geopoints'], columns=['LON', 'LAT'])
+        df_elements = pd.DataFrame(ag_results['final_jvals'] + 1, columns=['Element (1-based)'])
         df_elements.replace(-99998, -99999, inplace=True)
+
         df_meta = pd.concat([df_lonlat, df_elements], axis=1)
         df_meta['Point'] = df_meta.index + 1
         df_meta.set_index('Point', inplace=True)
@@ -402,45 +403,45 @@ class GeoUtilities:
 
         return df_meta
 
-    def ConstructReducedWaterLevelData_from_ds(self, ds, agdict, agresults, variable_name=None):
+    def construct_reduced_water_level_data_from_ds(self, ds, ag_dict, ag_results, variable_name=None):
         """
         This method acquires ADCIRC water levels for the list of geopoints/elements.
-        For each specified point in the grid, the resulting time series are reduced to a single time series using
+        For each specified point in the grid, the resulting time series is reduced to a single time series using
         a (basis 2d) weighted sum.
 
         For a non-nan value to result in the final data, the product data must:
         1) Be non-nan for each time series at a specified time tick
-        2) The test point must be interior to the specified element
+        2) The test point must be inside the specified element
         """
 
         if variable_name is None:
-            raise 'User MUST supply the correct variable name'
+            raise Exception('User MUST supply the correct variable name')
 
         self.logger.debug('Variable name is: %s', variable_name)
         t0 = tm.time()
 
-        data_list = list()
+        data_list = []
         t1 = tm.time()
-        final_weights = agresults['final_weights']
-        final_jvals = agresults['final_jvals']
+        final_weights = ag_results['final_weights']
+        final_jvals = ag_results['final_jvals']
         self.logger.debug('Time to acquire weigths and jvals: %s', tm.time() - t1)
 
         t1 = tm.time()
-        acdict = self.get_adcirc_time_from_ds(ds)
-        t = acdict['time'].values
-        e = agdict['ele'].values
+        ac_dict = self.get_adcirc_time_from_ds(ds)
+        t = ac_dict['time'].values
+        e = ag_dict['ele'].values
         self.logger.debug('Time to acquire time and element values: %s', tm.time() - t1)
 
         self.logger.debug('Before removal of out-of-triangle jvals: %s', final_jvals.shape)
 
-        mask = (final_jvals == -99999)
+        mask = final_jvals == -99999
         final_jvals = final_jvals[~mask]
-        self.logger.debug(f'After removal of out-of-triangle jvals: %s', final_jvals.shape)
+        self.logger.debug('After removal of out-of-triangle jvals: %s', final_jvals.shape)
 
         t1 = tm.time()
-        for vstation in final_jvals:
-            advardict = self.get_adcirc_slice_from_ds(ds, variable_name, it=e[vstation])
-            df = pd.DataFrame(advardict['var'])
+        for v_station in final_jvals:
+            ad_vardict = self.get_adcirc_slice_from_ds(ds, variable_name, it=e[v_station])
+            df = pd.DataFrame(ad_vardict['var'])
             data_list.append(df)
 
         self.logger.debug('Time to TDS fetch annual all test station (triplets) was: %s seconds', tm.time() - t1)
@@ -449,18 +450,18 @@ class GeoUtilities:
         # df_final=WaterLevelReductions(t, data_list, final_weights)
 
         self.logger.debug('Selecting the greedy alg: first in list with not all nans time series')
-        df_final = self.WaterLevelSelection(t, data_list, final_weights)
+        df_final = self.water_level_selection(t, data_list, final_weights)
 
         t0 = tm.time()
-        df_meta = self.GenerateMetadata(agresults)  # This is here mostly for future considerations
+        df_meta = self.generate_metadata(ag_results)  # This is here mostly for future considerations
         self.logger.debug('Time to reduce annual: %s, test stations is: %s seconds', len(final_jvals), tm.time() - t0)
-        agresults['final_reduced_data'] = df_final
-        agresults['final_meta_data'] = df_meta
+        ag_results['final_reduced_data'] = df_final
+        ag_results['final_meta_data'] = df_meta
 
-        return agresults
+        return ag_results
 
     # NOTE We do not need to rebuild the tree for each year since the grid is unchanged.
-    def Combined_pipeline(self, url, variable_name, lon, lat, nearest_neighbors=10):
+    def combined_pipeline(self, url, variable_name, lon, lat, nearest_neighbors=10):
         """
         Interpolate for one year.
 
@@ -472,31 +473,31 @@ class GeoUtilities:
         t0 = tm.time()
         geopoints = np.array([[lon, lat]])
         ds = self.f63_to_xr(url)
-        agdict = self.get_adcirc_grid_from_ds(ds)
-        agdict = self.attach_element_areas(agdict)
+        ag_dict = self.get_adcirc_grid_from_ds(ds)
+        ag_dict = self.attach_element_areas(ag_dict)
 
         self.logger.info('Compute_pipeline initiation: %s seconds', tm.time() - t0)
         self.logger.info('Start annual KDTree pipeline LON: %s LAT: %s', geopoints[0][0], geopoints[0][1])
 
-        agdict = self.ComputeTree(agdict)
-        agresults = self.ComputeQuery(geopoints, agdict, kmax=nearest_neighbors)
-        agresults = self.ComputeBasisRepresentation(geopoints, agdict, agresults)
-        agresults = self.ConstructReducedWaterLevelData_from_ds(ds, agdict, agresults, variable_name=variable_name)
+        ag_dict = self.compute_tree(ag_dict)
+        ag_results = self.compute_query(geopoints, ag_dict, kmax=nearest_neighbors)
+        ag_results = self.compute_basis_representation(geopoints, ag_dict, ag_results)
+        ag_results = self.construct_reduced_water_level_data_from_ds(ds, ag_dict, ag_results, variable_name=variable_name)
 
-        self.logger.debug('Basis function Tolerance value is: %s', self.TOL)
-        self.logger.debug('List of %s stations not assigned to any grid element follows for kmax: %s', len(agresults["outside_elements"]),
+        self.logger.debug('Basis function Tolerance value is: %s', self.tol)
+        self.logger.debug('List of %s stations not assigned to any grid element follows for kmax: %s', len(ag_results["outside_elements"]),
                           nearest_neighbors)
 
         t0 = tm.time()
-        df_product_data = agresults['final_reduced_data']
-        df_product_metadata = agresults['final_meta_data']
-        df_excluded_geopoints = pd.DataFrame(geopoints[agresults['outside_elements']], index=agresults['outside_elements'] + 1,
+        df_product_data = ag_results['final_reduced_data']
+        df_product_metadata = ag_results['final_meta_data']
+        df_excluded_geopoints = pd.DataFrame(geopoints[ag_results['outside_elements']], index=ag_results['outside_elements'] + 1,
                                              columns=['lon', 'lat'])
 
         self.logger.debug('Compute_pipeline cleanup: %s seconds', tm.time() - t0)
         self.logger.debug('Finished annual Combined_pipeline')
 
-        return df_product_data, df_product_metadata, df_excluded_geopoints
+        return df_product_data, df_excluded_geopoints  # , df_product_metadata
 
     @staticmethod
     def is_hurricane(test_val) -> bool:
@@ -517,8 +518,8 @@ class GeoUtilities:
                 try:
                     out_id = int(test_val)
                     is_hurricane = True
-                except ValueError:
-                    raise f'test indicates not a hurricane nor a casting. Perhaps a format issue?. Got {test_val}: Abort'
+                except ValueError as e:
+                    raise ValueError(f'test indicates not a hurricane nor a casting. Perhaps a format issue?. Got {test_val}: Abort') from e
 
         return is_hurricane
 
@@ -557,7 +558,7 @@ class GeoUtilities:
         stop_time = dt.datetime.strptime(time_range[1], '%Y-%m-%d %H:%M:%S')
         pd_time = pd.date_range(start=start_time, end=stop_time, freq='h')  # Doesnt land on 00,06,12,18
 
-        list_of_times = list()
+        list_of_times = []
 
         for time in pd_time:
             if time.hour in self.keep_hours:
@@ -591,14 +592,14 @@ class GeoUtilities:
         if start_adv > stop_adv:
             start_adv, stop_adv = stop_adv, start_adv
 
-        list_of_advisories = list()
+        list_of_advisories = []
         for inc in range(start_adv, stop_adv):
-            list_of_advisories.append("{:02d}".format(inc))
+            list_of_advisories.append(f'{inc: 02d}')
 
         list_of_advisories = [i for i in list_of_advisories if int(i) > 0]
 
         # Should we retain the input value?
-        list_of_advisories.append("{:02d}".format(stop_adv))
+        list_of_advisories.append(f'{stop_adv: 02d}')
 
         # A last ditch sort to be sure
         list_of_advisories.sort()
@@ -669,19 +670,19 @@ class GeoUtilities:
         Returns:
             list_of_advisories: list of advisories in a string format to build new urls
         """
-        list_of_advisories = list()
+        list_of_advisories = []
         stop_advisory = int(str_time)
         num_6hour_look_asides = int(24 * offset / 6)
         range_values = [0, num_6hour_look_asides]
         range_values.sort()  # sorts ascending order
 
         for inc in range(*range_values):
-            list_of_advisories.append("{:02d}".format(stop_advisory + inc))
+            list_of_advisories.append(f'{stop_advisory + inc: 02d}')
 
         list_of_advisories = [i for i in list_of_advisories if int(i) >= 0]
 
         # Keep the input value?
-        list_of_advisories.append("{:02d}".format(stop_advisory))
+        list_of_advisories.append(f'{stop_advisory: 02d}')
 
         # A last ditch sort to be sure
         list_of_advisories.sort()
@@ -702,7 +703,7 @@ class GeoUtilities:
             list of year values
 
         """
-        list_of_years = list()
+        list_of_years = []
 
         for time in list_of_times:
             try:
@@ -724,16 +725,16 @@ class GeoUtilities:
         The value of the selected instance may be passed in by the caller
 
         Parameters:
-           list_of_times: list (str)(%Y%m%d%H) ordered set of instances from which to build new URLs
-           in_gridname: current gridname from a representative INPUT url
-           in_gridname: current instance from a representative INPUT url
+           :param list_of_times: list (str)(%Y%m%d%H) ordered set of instances from which to build new URLs
+           :param in_gridname: current gridname from a representative INPUT url
+           :param in_instance: current instance from a representative INPUT url
 
         Returns:
             instance_list: ordered list of instances to use for building a set of new urls.
         """
         num_entries = len(list_of_times)
 
-        gridname = in_gridname  # Get default values
+        # gridname = in_gridname  # Get default values
         instance = in_instance
 
         instance_list = num_entries * [instance]
@@ -779,16 +780,18 @@ class GeoUtilities:
 
         """
         try:
-
             if self.is_hurricane(stop_time):
                 num_6hour_look_asides = int(24 * n_days / 6)
                 stop_adv = int(stop_time)
                 start_adv = stop_adv + num_6hour_look_asides  # We normally assume offset is negative but that is not enforced
+
                 return start_adv
-            else:
-                t_stop = dt.datetime.strptime(stop_time, '%Y-%m-%d %H:%M:%S')
-                t_start = t_stop + dt.timedelta(days=n_days)
-                start_time = t_start.strftime('%Y-%m-%d %H:%M:%S')
-                return start_time
-        except Exception:
-            raise 'Fell out the bottom of construct_start_time_from_offset. Abort'
+
+            t_stop = dt.datetime.strptime(stop_time, '%Y-%m-%d %H:%M:%S')
+            t_start = t_stop + dt.timedelta(days=n_days)
+            start_time = t_start.strftime('%Y-%m-%d %H:%M:%S')
+
+            return start_time
+
+        except Exception as e:
+            raise Exception('Fell out the bottom of construct_start_time_from_offset. Abort') from e

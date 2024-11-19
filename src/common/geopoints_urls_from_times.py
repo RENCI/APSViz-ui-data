@@ -15,7 +15,7 @@
 
 import os
 import datetime as dt
-from src.common.utilities import GeoUtilities
+from src.common.geopoints_utilities import GeoUtilities
 from src.common.logger import LoggingUtil
 
 
@@ -65,23 +65,17 @@ class GenerateURLsFromTimes:
         hurricane_yaml_year: (str) is part of the Hurricane special case. No way to dig out the year directory name without the user specifying it
             only needed for YAML based hurricane construction. Eg .../thredds/dodsC/2021/al09/11/ec95d/...
     """
+    def __str__(self):
+        return self.__class__.__name__
 
-    def __init__(self, _app_name='GenerateURLsFromTimes.TEST', _logger=None, url=None, timein=None, timeout=None, ndays=None, grid_name=None,
+    def __init__(self, _app_name='GenerateURLsFromTimes.TEST', _logger=None, url=None, time_in=None, time_out=None, n_days=None, grid_name=None,
                  instance_name=None, config_name=None, hurricane_yaml_year=None, hurricane_yaml_source=None):
-        # if a reference to a logger was passed in use it
-        if _logger is not None:
-            # get a handle to a logger
-            self.logger = _logger
-        else:
-            # get the log level and directory from the environment.
-            log_level, log_path = LoggingUtil.prep_for_logging()
-
-            # create a logger
-            self.logger = LoggingUtil.init_logging(_app_name, level=log_level, line_format='medium', log_file_path=log_path)
+        # get a handle to a logger
+        self.logger = _logger
 
         self.utils = GeoUtilities(_logger=self.logger)
 
-        stoptime = None
+        stop_time = None
 
         # The Hurricane special terms are only usedY if you are requesting to build from a YAML AND the caller wants Hurricane data
         # If a URL passed in, then gridname and instance can be gotten from it.
@@ -93,44 +87,44 @@ class GenerateURLsFromTimes:
             self.instance_name = words[-3]
             self.grid_name = words[-5]
             try:
-                stoptime = dt.datetime.strptime(words[-6], '%Y%m%d%H').strftime('%Y-%m-%d %H:%M:%S')  # Can be overridden by args.stoptime
+                stop_time = dt.datetime.strptime(words[-6], '%Y%m%d%H').strftime('%Y-%m-%d %H:%M:%S')  # Can be overridden by args.stop_time
             except ValueError:  # Must be a hurricane
-                stoptime = words[-6]
+                stop_time = words[-6]
             self.url = url
         # If No url, then build URLs from a YAML. This requires the caller to specify gridname, instance, and ensemble
         else:
             self.instance_name = instance_name  # This is for potentially mapping new instances to urls
             self.grid_name = grid_name
             if self.instance_name is None:
-                raise 'Must specify an instance value if building URLs based on a YAML. None specified: Abort'
+                raise Exception('Must specify an instance value if building URLs based on a YAML. None specified: Abort')
 
             if self.grid_name is None:
-                raise 'Must specify a grid_name if building URLs based on a YAML. None specified: Abort'
+                raise Exception('Must specify a grid_name if building URLs based on a YAML. None specified: Abort')
 
             self.hurricane_yaml_source = hurricane_yaml_source
             self.hurricane_yaml_year = hurricane_yaml_year  # Cannot span multiple years using Hurricane-YAML construction
 
         # timeout MUST be supplied somehow
-        if timeout is None and stoptime is None:
-            raise 'timeout is not set and no URL provided: Abort'
+        if time_out is None and stop_time is None:
+            raise Exception('timeout is not set and no URL provided: Abort')
 
-        if timeout is not None:
-            stoptime = timeout
+        if time_out is not None:
+            stop_time = time_out
 
-        # Find timein
-        if timein is None:
-            if ndays is None:
-                raise 'No timein or ndays specified.'
-            else:
-                starttime = self.utils.construct_start_time_from_offset(stoptime, ndays)  # Will return an advisory value if appropriate
+        # Find time in
+        if time_in is None:
+            if n_days is None:
+                raise Exception('No timein or ndays specified.')
+
+            start_time = self.utils.construct_start_time_from_offset(stop_time, n_days)  # Will return an advisory value if appropriate
         else:
-            starttime = timein
+            start_time = time_in
 
-        self.starttime = starttime
-        self.stoptime = stoptime
-        self.ndays = ndays
+        self.start_time = start_time
+        self.stop_time = stop_time
+        self.n_days = n_days
 
-        self.logger.debug('Current time (or advisory) range is %s to %s. Specified ndays is %s', self.starttime, self.stoptime, self.ndays)
+        self.logger.debug('Current time (or advisory) range is %s to %s. Specified ndays is %s', self.start_time, self.stop_time, self.n_days)
 
         if url is not None:
             self.logger.debug('Current estimated ensemble: %s, instance: %s and gridname: %s', self.ensemble, self.instance_name, self.grid_name)
@@ -149,19 +143,24 @@ class GenerateURLsFromTimes:
             urls: list(str). List of valid URLs for processing
         """
         url = self.url
-        time_range = (self.starttime, self.stoptime)  # This could also be an advisory range
+        time_range = (self.start_time, self.stop_time)  # This could also be an advisory range
         list_of_times = self.utils.generate_six_hour_time_steps_from_range(time_range)
         list_of_instances = self.utils.generate_list_of_instances(list_of_times, self.grid_name, self.instance_name)
-        urls = list()
+
+        urls = []
+
         for time, instance in zip(list_of_times, list_of_instances):
             words = url.split('/')
             words[-2] = ensemble
             words[-3] = self.instance_name
             words[-6] = str(time)  # Need to ensure because we could have an advisory come in
-            newurl = '/'.join(words)
-            if newurl not in urls:
-                urls.append(newurl)
-        logger.debug('Constructed %s urls of ensemble %s', urls, ensemble)
+            new_url = '/'.join(words)
+
+            if new_url not in urls:
+                urls.append(new_url)
+
+        self.logger.debug('Constructed %s urls of ensemble %s', urls, ensemble)
+
         return urls
 
     def build_url_list_from_template_url_and_offset(self, ensemble='nowcast') -> list:
@@ -180,17 +179,17 @@ class GenerateURLsFromTimes:
             urls: list(str). List of valid URLs for processing
         """
         url = self.url
-        time_value = self.stoptime  # Could also be an advisory
-        offset = self.ndays
+        time_value = self.stop_time  # Could also be an advisory
+        offset = self.n_days
 
         if offset > 0:
             self.logger.warning('Offset >0 specified: Behavior is not tested')
 
-        # timein = url.split('/')[-6] # Maybe need to check for a Hurricane Advisory also
+        # time_in = url.split('/')[-6] # Maybe need to check for a Hurricane Advisory also
         list_of_times = self.utils.generate_six_hour_time_steps_from_offset(time_value, offset)
         list_of_instances = self.utils.generate_list_of_instances(list_of_times, self.grid_name, self.instance_name)
 
-        urls = list()
+        urls = []
 
         for time, instance in zip(list_of_times, list_of_instances):
             words = url.split('/')
@@ -205,7 +204,13 @@ class GenerateURLsFromTimes:
 
     @staticmethod
     def load_config(config_name):
-        return ''
+        """
+        placeholder method to load the config file
+
+        :param config_name:
+        :return:
+        """
+        return config_name
 
     # Approach Used by ADDA
     def build_url_list_from_yaml_and_times(self, ensemble='nowcast') -> list:
@@ -231,16 +236,18 @@ class GenerateURLsFromTimes:
         config = None
 
         if self.config_name is None:
-            raise 'self.config_name is None. Cannot use the YAML generators: Abort'
+            raise Exception('self.config_name is None. Cannot use the YAML generators: Abort')
+
         try:
             config = self.load_config(self.config_name)
-        except FileNotFoundError:  # OSError:
-            raise f'No URL structural config yml file found: {self.config_name}: Abort'
+        except FileNotFoundError as e:  # OSError:
+            raise FileNotFoundError(f'No URL structural config yml file found: {self.config_name}: Abort') from e
 
-        time_range = (self.starttime, self.stoptime)  # Could also be a range of advisories
+        time_range = (self.start_time, self.stop_time)  # Could also be a range of advisories
         list_of_times = self.utils.generate_six_hour_time_steps_from_range(time_range)
         list_of_instances = self.utils.generate_list_of_instances(list_of_times, self.grid_name, self.instance_name)
-        urls = list()
+
+        urls = []
 
         self.logger.debug('list_of_times: %s', list_of_times)
         self.logger.debug('list_of_instances: %s', list_of_instances)
@@ -279,20 +286,22 @@ class GenerateURLsFromTimes:
         config = None
 
         if self.config_name is None:
-            raise 'self.config_name is None. Cannot use the YAML generators: Abort'
+            raise Exception('self.config_name is None. Cannot use the YAML generators: Abort')
+
         try:
             config = self.load_config(self.config_name)
-        except OSError:
-            raise f'No URL structural config yml file self.config_name found: Abort'
+        except OSError as e:
+            raise OSError(f'No URL structural config yml file {self.config_name} found: Abort') from e
 
-        time_value = self.stoptime  # Could also be an advisory
-        offset = self.ndays
+        time_value = self.stop_time  # Could also be an advisory
+        offset = self.n_days
         if offset > 0:
             self.logger.warning('Offset >0 specified: Behavior is not tested')
 
         list_of_times = self.utils.generate_six_hour_time_steps_from_offset(time_value, offset)
         list_of_instances = self.utils.generate_list_of_instances(list_of_times, self.grid_name, self.instance_name)
-        urls = list()
+
+        urls = []
 
         for time, instance in zip(list_of_times, list_of_instances):
             url = self.utils.construct_url_from_yaml(config, time, self.instance_name, ensemble, self.grid_name,
@@ -310,6 +319,8 @@ class GenerateURLsEntry:
     Class that has an entry point to build urls
 
     """
+    def __str__(self):
+        return self.__class__.__name__
 
     def __init__(self, _app_name='GenerateURLsEntry.TEST', _logger=None):
         """
@@ -328,7 +339,7 @@ class GenerateURLsEntry:
             # create a logger
             self.logger = LoggingUtil.init_logging(_app_name, level=log_level, line_format='medium', log_file_path=log_path)
 
-    def main(self, args):
+    def run(self, args):
         """
         A simple main method to demonstrate the use of this class
         """
@@ -349,29 +360,29 @@ class GenerateURLsEntry:
             self.logger.debug('Selecting a template-url generation method')
             if args.timein is not None:
                 self.logger.debug('Selecting a specific time-range procedure')
-                rpl = GenerateURLsFromTimes(_logger=logger, url=args.url, timein=args.timein, timeout=args.timeout, ndays=None, grid_name=None,
-                                            instance_name=None, config_name=None)
+                rpl = GenerateURLsFromTimes(_logger=self.logger, url=args.url, time_in=args.timein, time_out=args.timeout, n_days=None,
+                                            grid_name=None, instance_name=None, config_name=None)
                 new_urls = rpl.build_url_list_from_template_url_and_times(ensemble=args.ensemble)
             else:
                 self.logger.debug('Selecting time+ndays procedure')
-                rpl = GenerateURLsFromTimes(_logger=logger, url=args.url, timein=None, timeout=args.timeout, ndays=args.ndays, grid_name=None,
+                rpl = GenerateURLsFromTimes(_logger=self.logger, url=args.url, time_in=None, time_out=args.timeout, n_days=args.ndays, grid_name=None,
                                             instance_name=None, config_name=None)
                 new_urls = rpl.build_url_list_from_template_url_and_offset(ensemble=args.ensemble)
         else:
             self.logger.debug('Selecting a YAML generation method')
             if args.grid_name is None or args.instance_name is None or config_name is None:
-                raise 'YAML-based procedures requires gridname, instance_name and config_name'
+                raise Exception('YAML-based procedures requires gridname, instance_name and config_name')
             if args.hurricane_yaml_year is not None and args.hurricane_yaml_source is not None:
                 self.logger.debug('Detected values required for building YAML-based Hurricane urls')
             if args.timein is not None:
                 self.logger.debug('Selecting a specific time-range procedure')
-                rpl = GenerateURLsFromTimes(_logger=logger, timein=args.timein, timeout=args.timeout, ndays=None, grid_name=args.grid_name,
+                rpl = GenerateURLsFromTimes(_logger=self.logger, time_in=args.timein, time_out=args.timeout, n_days=None, grid_name=args.grid_name,
                                             instance_name=args.instance_name, config_name=args.config_name,
                                             hurricane_yaml_year=args.hurricane_yaml_year, hurricane_yaml_source=args.hurricane_yaml_source)
                 new_urls = rpl.build_url_list_from_yaml_and_times(ensemble=args.ensemble)
             else:
                 self.logger.debug('Selecting time+ndays procedure')
-                rpl = GenerateURLsFromTimes(_logger=logger, timein=None, timeout=args.timeout, ndays=args.ndays, grid_name=args.grid_name,
+                rpl = GenerateURLsFromTimes(_logger=self.logger, time_in=None, time_out=args.timeout, n_days=args.ndays, grid_name=args.grid_name,
                                             instance_name=args.instance_name, config_name=args.config_name,
                                             hurricane_yaml_year=args.hurricane_yaml_year, hurricane_yaml_source=args.hurricane_yaml_source)
                 new_urls = rpl.build_url_list_from_yaml_and_times(ensemble=args.ensemble)
@@ -381,7 +392,7 @@ class GenerateURLsEntry:
 
 if __name__ == '__main__':
     # setup a logger for testing
-    logger = LoggingUtil.init_logging(f"GenerateURLsFromTimes.test", level=10, line_format='medium',
+    logger = LoggingUtil.init_logging("GenerateURLsFromTimes.test", level=10, line_format='medium',
                                       log_file_path='./geopoints_url_from_times-test.log')
 
     from argparse import ArgumentParser
@@ -410,4 +421,4 @@ if __name__ == '__main__':
 
     gen_entry = GenerateURLsEntry(_logger=logger)
 
-    gen_entry.main(cli_args)
+    gen_entry.run(cli_args)

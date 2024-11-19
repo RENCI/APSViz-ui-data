@@ -20,10 +20,11 @@ IN THE SOFTWARE.
 """
 
 import sys
-import pandas as pd
 import time as tm
-from src.common.generate_urls_from_times import GenerateURLsFromTimes
-from src.common.utilities import GeoUtilities
+import pandas as pd
+
+from src.common.geopoints_urls_from_times import GenerateURLsFromTimes
+from src.common.geopoints_utilities import GeoUtilities
 from src.common.logger import LoggingUtil
 
 
@@ -92,7 +93,7 @@ class GeoPointsURL:
             words = url.split('/')
 
             ensemble = words[-2]  # Usually nowcast, forecast, etc.
-        except IndexError as e:
+        except IndexError:
             self.logger.exception('strip_ensemble_from_url Unexpected failure try next')
 
         return ensemble
@@ -132,6 +133,12 @@ class GeoPointsURL:
         return url
 
     def run(self, args):
+        """
+        initiates the process
+
+        :param args:
+        :return:
+        """
         # assign the incoming run arguments
         variable_name = args.variable_name
         url = args.url
@@ -146,7 +153,7 @@ class GeoPointsURL:
             variable_name = self.guess_variable_name(url)
 
         if variable_name is None:
-            raise 'Variable name invalid or not identified'
+            raise Exception('Variable name invalid or not identified')
 
         self.logger.debug('Identified variable name is %s', variable_name)
 
@@ -176,7 +183,8 @@ class GeoPointsURL:
         if n_days <= 0:
             self.logger.debug('Build list of URLs to fetch: n_days lookback is %s', n_days)
 
-            rpl = GenerateURLsFromTimes(url=url, timein=None, timeout=None, ndays=n_days, grid_name=None, instance_name=None, config_name=None)
+            rpl = GenerateURLsFromTimes(_logger=self.logger, url=url, time_in=None, time_out=None, n_days=n_days, grid_name=None, instance_name=None,
+                                        config_name=None)
 
             new_urls = rpl.build_url_list_from_template_url_and_offset(ensemble=ensemble)
 
@@ -189,10 +197,10 @@ class GeoPointsURL:
         self.logger.info('Lon: %s, Lat: %s, Selected nearest neighbors values is: %s', lon, lat, nearest_neighbors)
 
         if len(new_urls) == 0:
-            raise 'No URLs identified given the input URL: %s. Abort'
+            raise Exception('No URLs identified given the input URL: %s. Abort')
 
-        data_list = list()
-        exclude_list = list()
+        data_list = []
+        exclude_list = []
 
         t0 = tm.time()
 
@@ -200,14 +208,14 @@ class GeoPointsURL:
             self.logger.debug('URL: %s', url)
 
             try:
-                df_product_data, df_product_metadata, df_excluded = self.geo_utils.Combined_pipeline(url, variable_name, lon, lat, nearest_neighbors)
-                # df_product_data.to_csv(f'Product_data.csv',header=args.keep_headers)
-                # df_product_metadata.to_csv(f'Product_meta.csv',header=args.keep_headers)
+                df_product_data, df_excluded = self.geo_utils.combined_pipeline(url, variable_name, lon, lat, nearest_neighbors)
+                # , df_product_metadata
+                # df_product_data.to_csv(f'Product_data.csv', header=args.keep_headers)
+                # df_product_metadata.to_csv(f'Product_meta.csv', header=args.keep_headers)
                 data_list.append(df_product_data)
                 exclude_list.append(df_excluded)
             except (OSError, FileNotFoundError):
                 self.logger.warning('Current URL was not found: %s. Try another...', url)
-                pass
 
         self.logger.info('Fetching Runtime was: %s seconds', tm.time() - t0)
 
@@ -237,15 +245,13 @@ class GeoPointsURL:
 
 
 if __name__ == '__main__':
-    """
-    Main entry point for local testing
-    
-    """
+    # Main entry point for local testing
+
     # init the return
-    ret_val = 0
+    RET_VAL = 0
 
     # setup a logger for testing
-    logger = LoggingUtil.init_logging(f"GeoPointsURL.test", level=10, line_format='medium', log_file_path='./geopoints_url-test.log')
+    logger = LoggingUtil.init_logging("GeoPointsURL.test", level=10, line_format='medium', log_file_path='./geopoints_url-test.log')
 
     try:
         from argparse import ArgumentParser
@@ -284,6 +290,6 @@ if __name__ == '__main__':
 
     except Exception:
         logger.exception("Exit: exception occurred")
-        ret_val = 1
+        RET_VAL = 1
 
-    sys.exit(ret_val)
+    sys.exit(RET_VAL)
