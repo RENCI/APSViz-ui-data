@@ -176,7 +176,7 @@ class GeoPointsURL:
         if variable_name == 'swan_HS':
             data_src = 'SWAN'
 
-        header_name = data_src + dataproduct
+        header_name = data_src + ' ' + dataproduct
 
         self.logger.debug('Header name defined to be %s ', header_name)
 
