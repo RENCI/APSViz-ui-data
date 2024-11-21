@@ -594,12 +594,12 @@ class GeoUtilities:
 
         list_of_advisories = []
         for inc in range(start_adv, stop_adv):
-            list_of_advisories.append(f'{inc: 02d}')
+            list_of_advisories.append(f'{inc:02d}')
 
         list_of_advisories = [i for i in list_of_advisories if int(i) > 0]
 
         # Should we retain the input value?
-        list_of_advisories.append(f'{stop_adv: 02d}')
+        list_of_advisories.append(f'{stop_adv:02d}')
 
         # A last ditch sort to be sure
         list_of_advisories.sort()
@@ -677,12 +677,12 @@ class GeoUtilities:
         range_values.sort()  # sorts ascending order
 
         for inc in range(*range_values):
-            list_of_advisories.append(f'{stop_advisory + inc: 02d}')
+            list_of_advisories.append(f'{stop_advisory + inc:02d}')
 
         list_of_advisories = [i for i in list_of_advisories if int(i) >= 0]
 
         # Keep the input value?
-        list_of_advisories.append(f'{stop_advisory: 02d}')
+        list_of_advisories.append(f'{stop_advisory:02d}')
 
         # A last ditch sort to be sure
         list_of_advisories.sort()
