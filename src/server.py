@@ -92,6 +92,10 @@ async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_t
     status_code: int = 200
 
     try:
+        logger.debug('Params - grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
+                     'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s, ensemble_name: %s', grid_type, event_type,
+            instance_name, met_class, storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit, ensemble_name)
+
         # init the kwargs variable
         kwargs: dict = {}
 
@@ -147,8 +151,7 @@ async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_t
 
 
 @APP.get('/get_ui_instance_name', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
-async def get_ui_instance_name(site_branding: BrandName,
-                               apsviz_instance_name: APSViz_InstanceNames = Query(default=None),
+async def get_ui_instance_name(site_branding: BrandName, apsviz_instance_name: APSViz_InstanceNames = Query(default=None),
                                nopp_instance_name: NOPP_InstanceNames = Query(default=None),
                                reset: Union[bool, None] = Query(default=False)) -> PlainTextResponse:
     """
@@ -281,16 +284,13 @@ async def get_ui_data_secure(run_id: Union[str, None] = Query(default=None), gri
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     <br/>&nbsp;&nbsp;&nbsp;use_v3_sp: Use the UI v3 data stored procedure
     """
+    # pylint: disable=locally-disabled, unused-argument
+
     # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
     try:
-        logger.debug(
-            'Params - run_id: %s, grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
-            'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s, ensemble_name: %s', run_id, grid_type, event_type,
-            instance_name, met_class, storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit, ensemble_name)
-
         # init the kwargs variable
         kwargs: dict = {}
 
@@ -372,6 +372,8 @@ async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.j
     <br/>&nbsp;&nbsp;&nbsp;use_new_wb: Use the new catalog workbench code
     <br/>&nbsp;&nbsp;&nbsp;use_v3_sp: Use the new v3 data stored procedure
     """
+    # pylint: disable=locally-disabled, unused-argument
+
     # init the returned HTML status code
     status_code: int = 200
 
@@ -429,8 +431,8 @@ async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.j
                 os.makedirs(temp_file_path)
 
                 # write out the data to a file
-                with open(file_path, 'w', encoding='utf-8') as f_h:
-                    json.dump(ret_val, f_h)
+                with open(file_path, 'w', encoding='utf-8') as fp:
+                    json.dump(ret_val, fp)
 
     except Exception:
         # log the exception
@@ -457,13 +459,11 @@ def get_geo_point_data(lon: Union[float, None] = Query(default=None), lat: Union
 
     :return:
     """
+    # pylint: disable=locally-disabled, unused-argument
+
     # init the return and HTML status code
     ret_val: str = ''
     status_code: int = 200
-
-    logger.debug(
-        'Input params - lon: %s, lat: %s, variable_name: %s, kmax: %s, alt_urlsource: %s, url: %s, keep_headers: %s, ensemble: %s, '
-        'ndays: %s, tds_svr: %s', lon, lat, variable_name, kmax, alt_urlsource, url, keep_headers, ensemble, ndays, tds_svr)
 
     try:
         # validate the input. these are not optional
@@ -651,13 +651,13 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
     <br/>&nbsp;&nbsp;&nbsp;filter_event_type: Filter out records by event type.
     <br/>&nbsp;&nbsp;&nbsp;limit: limit the number of records returned. only applicable when run_id is empty.
     """
+    # pylint: disable=locally-disabled, unused-argument
+
     # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
     try:
-        logger.debug('Input params - run_id: %s, project_code: %s, filter_event_type: %s, limit: %s', run_id, project_code, filter_event_type, limit)
-
         # init the kwargs variable
         kwargs: dict = {}
 
@@ -728,16 +728,13 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     <br/>&nbsp;&nbsp;&nbsp;product_type: Filter by the product type
     <br/>&nbsp;&nbsp;&nbsp;psc_output: True if PSC output format is desired
     """
+    # pylint: disable=locally-disabled, unused-argument
+
     # init the returned data and HTML status code
     ret_val: dict = {}
     status_code: int = 200
 
     try:
-        logger.debug(
-            'Input params - grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
-            'run_date: %s, end_date: %s, project_code %s, product_type: %s', grid_type, event_type, instance_name, met_class, storm_name, cycle,
-            advisory_number, run_date, end_date, project_code, product_type)
-
         # init the kwargs variable
         kwargs: dict = {}
 

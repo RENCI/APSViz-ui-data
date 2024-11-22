@@ -401,6 +401,8 @@ class GeoUtilities:
         df_meta = pd.concat([df_lonlat, df_elements], axis=1)
         df_meta['Point'] = df_meta.index + 1
         df_meta.set_index('Point', inplace=True)
+
+        # pylint: disable=consider-using-f-string
         df_meta.rename('P{}'.format, inplace=True)
 
         return df_meta
