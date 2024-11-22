@@ -363,6 +363,8 @@ class GeoUtilities:
 
         # Index is a loop over multiple possible lon/lat pairs
         for index, data_series, weights in zip(range(0, len(data_list)), data_list, final_weights):
+            self.logger.debug('weights: %s', weights )
+
             df_single = pd.DataFrame(index=t)
             count = 0
 
@@ -490,7 +492,7 @@ class GeoUtilities:
 
         t0 = tm.time()
         df_product_data = ag_results['final_reduced_data']
-        df_product_metadata = ag_results['final_meta_data']
+        # df_product_metadata = ag_results['final_meta_data']
         df_excluded_geopoints = pd.DataFrame(geopoints[ag_results['outside_elements']], index=ag_results['outside_elements'] + 1,
                                              columns=['lon', 'lat'])
 
@@ -499,8 +501,7 @@ class GeoUtilities:
 
         return df_product_data, df_excluded_geopoints  # , df_product_metadata
 
-    @staticmethod
-    def is_hurricane(test_val) -> bool:
+    def is_hurricane(self, test_val) -> bool:
         """
         Determine of the input test val is a Date, an Int or something else
         Parameters:
@@ -514,9 +515,12 @@ class GeoUtilities:
         except (ValueError, TypeError):
             try:
                 test = dt.datetime.strptime(test_val, '%Y%m%d%H')
+                self.logger.debug('test: %s', test)
             except Exception:
                 try:
                     out_id = int(test_val)
+                    self.logger.debug('out_id: %s', out_id)
+
                     is_hurricane = True
                 except ValueError as e:
                     raise ValueError(f'test indicates not a hurricane nor a casting. Perhaps a format issue?. Got {test_val}: Abort') from e
@@ -714,8 +718,7 @@ class GeoUtilities:
 
         return list_of_years
 
-    @staticmethod
-    def generate_list_of_instances(list_of_times, in_gridname, in_instance):
+    def generate_list_of_instances(self, list_of_times, in_gridname, in_instance):
         """
         This function matches every entry in the list_of_times with an associated instance.
         The structure of this code is such that, in the future, we may have scenarios where
@@ -732,6 +735,8 @@ class GeoUtilities:
         Returns:
             instance_list: ordered list of instances to use for building a set of new urls.
         """
+        self.logger.debug('list_of_times: %s, in_gridname: %s, in_instance: %s', list_of_times, in_gridname, in_instance)
+
         num_entries = len(list_of_times)
 
         # gridname = in_gridname  # Get default values
@@ -740,32 +745,6 @@ class GeoUtilities:
         instance_list = num_entries * [instance]
 
         return instance_list
-
-
-    # Expect this to be part of a looped  list of times from which appending will be applied
-    def construct_url_from_yaml(self, config, intime, instance, ensemble, gridname, hurricane_yaml_year=None, hurricane_yaml_source=None):
-        """
-        Given a single time (%Y%m%d%H) or advisory, the gridname, instance, and ensemble values
-        use the entries in config to build a proper URL
-        If applying to Hurricanes, we need to also applyld_url_list_from_yaml_and_timest the values for hurricane_yaml_year, and
-        hurricane_yaml_source
-        """
-        # hurricane_yaml_source is a special case scenario
-        if self.is_hurricane(intime):
-            self.logger.debug('Request for YAML build of Hurricane URL. subdir is %s', hurricane_yaml_source)
-            intime = str(intime)
-            subdir = hurricane_yaml_year  # This is certainly NOT generalized
-            source = hurricane_yaml_source
-        else:
-            subdir = dt.datetime.strptime(intime, '%Y%m%d%H').year
-            source = 'nam'
-
-        cfg = config['ADCIRC']
-        url = cfg["baseurl"] + cfg["dodsCpart"] % (
-        subdir, source, intime, cfg["AdcircGrid"] % (gridname), cfg["Machine"], cfg["Instance"] % (instance), cfg["Ensemble"] % (ensemble),
-        cfg["fortNumber"])
-
-        return url
 
     def construct_start_time_from_offset(self, stop_time, n_days):
         """

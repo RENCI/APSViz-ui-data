@@ -43,10 +43,10 @@ class GeoPointsURL:
             self.logger = _logger
         else:
             # get the log level and directory from the environment.
-            log_level, log_path = LoggingUtil.prep_for_logging()
+            __log_level, __log_path = LoggingUtil.prep_for_logging()
 
             # create a logger
-            self.logger = LoggingUtil.init_logging(app_name, level=log_level, line_format='medium', log_file_path=log_path)
+            self.logger = LoggingUtil.init_logging(app_name, level=__log_level, line_format='medium', log_file_path=__log_path)
 
         # Define some basic mappings for URL to variables names. Can override using CI variables
         self.var_mapper = {'fort': 'zeta', 'swan': 'swan_HS'}
@@ -182,10 +182,7 @@ class GeoPointsURL:
 
         if n_days <= 0:
             self.logger.debug('Build list of URLs to fetch: n_days lookback is %s', n_days)
-
-            rpl = GenerateURLsFromTimes(_logger=self.logger, url=url, time_in=None, time_out=None, n_days=n_days, grid_name=None, instance_name=None,
-                                        config_name=None)
-
+            rpl = GenerateURLsFromTimes(_logger=self.logger, url=url, time_in=None, time_out=None, n_days=n_days, grid_name=None, instance_name=None)
             new_urls = rpl.build_url_list_from_template_url_and_offset(ensemble=ensemble)
 
             self.logger.info('New URL list %s', new_urls)
@@ -250,22 +247,25 @@ if __name__ == '__main__':
     # init the return
     RET_VAL = 0
 
+    # get the log level and directory from the environment.
+    log_level, log_path = LoggingUtil.prep_for_logging()
+
     # setup a logger for testing
-    logger = LoggingUtil.init_logging("GeoPointsURL.test", level=10, line_format='medium', log_file_path='./geopoints_url-test.log')
+    logger = LoggingUtil.init_logging("GeoPointsURL.test", level=log_level, line_format='medium', log_file_path=log_path)
 
     try:
         from argparse import ArgumentParser
 
         parser = ArgumentParser()
 
-        parser.add_argument('--lon', action='store', dest='lon', default=None, type=float, help='lon: longitude value for time series extraction')
-        parser.add_argument('--lat', action='store', dest='lat', default=None, type=float, help='lat: latitude value for time series extraction')
+        parser.add_argument('--lon', action='store', dest='lon', required=True, type=float, help='lon: longitude value for time series extraction')
+        parser.add_argument('--lat', action='store', dest='lat', required=True, type=float, help='lat: latitude value for time series extraction')
         parser.add_argument('--variable_name', action='store', dest='variable_name', default=None, type=str,
                             help='Optional variable name of interest from the supplied url')
         parser.add_argument('--kmax', action='store', dest='kmax', default=10, type=int, help='nearest_neighbors values when performing the Query')
         parser.add_argument('--alt_urlsource', action='store', dest='alt_urlsource', default=None, type=str,
                             help='Alternative location for the ADCIRC data - NOTE specific formatting requirements exist')
-        parser.add_argument('--url', action='store', dest='url', default=None, type=str, help='Specify FQ URL')
+        parser.add_argument('--url', action='store', dest='url', required=True, type=str, help='Specify FQ URL')
         parser.add_argument('--keep_headers', action='store_true', default=True, help='Boolean: Indicates to add header names to output files')
         parser.add_argument('--ensemble', action='store', dest='ensemble', default=None, type=str,
                             help='Choose overriding ensemble such as nowcast. Else internal code extracts from the URL')
@@ -278,7 +278,7 @@ if __name__ == '__main__':
         logger.debug('Input args: %s', cli_args)
 
         # instantiate the geo-point URL class
-        gp_url = GeoPointsURL(logger)
+        gp_url = GeoPointsURL(_logger=logger)
 
         # Call the runner
         df_out = gp_url.run(cli_args)
