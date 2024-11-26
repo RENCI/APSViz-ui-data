@@ -601,3 +601,80 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # Return Pandas dataframe
         return ret_val
+
+    def verify_user(self, email: str, password_hash: str) -> dict:
+        """
+        verifies the user has an account and the password is correct.
+
+        if the verification is successful, return a JSON object with pass/fail and user account data
+
+        :param email:
+        :param password_hash:
+        :return:
+        """
+        # init the return value:
+        ret_val = None
+
+        # prep the email param for the SP
+        if email is None:
+            email = 'null'
+        else:
+            email = f"'{email}'"
+
+        # prep the password param for the SP
+        if password_hash is None:
+            password_hash = 'null'
+        else:
+            password_hash = f"'{password_hash}'"
+
+        # build the query. this will also return the users profile
+        sql = f"SELECT verify_user(_email := {email}, _password_hash := {password_hash});"
+
+        # get the info
+        ret_val = self.exec_sql('apsviz', sql)
+
+        # return the result of the inquiry
+        return ret_val
+
+    def add_user(self, **kwargs) -> dict:
+        """
+        Adds the user and profile and returns a pass/fail dict
+
+        if the call is successful, returns a pass/fail dict
+
+        :param:
+        :return:
+        """
+        # init the return value:
+        ret_val = None
+
+        # build the query
+        sql = f"SELECT public.add_user(_email:={kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, _details:={kwargs['details']});"
+
+        # get the info
+        ret_val = self.exec_sql('apsviz', sql)
+
+        # Return Pandas dataframe
+        return ret_val
+
+    def update_user(self, **kwargs) -> dict:
+        """
+        Updates the user profile and returns a pass/fail dict
+
+        if the call is successful, returns a pass/fail dict
+
+        :param :
+
+        :return:
+        """
+        # init the return value:
+        ret_val = None
+
+        # create the SQL query
+        sql = f"SELECT public.update_user({kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, _details:={kwargs['details']});"
+
+        # get the info
+        ret_val = self.exec_sql('apsviz', sql)
+
+        # Return Pandas dataframe
+        return ret_val

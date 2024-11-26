@@ -69,7 +69,7 @@ async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_t
                       limit: Union[int, None] = Query(default=7), use_new_wb: Union[bool, None] = Query(default=False),
                       use_v3_sp: Union[bool, None] = Query(default=False)) -> json:
     """
-    Gets the json formatted map UI catalog data.
+    Gets the JSON formatted map UI catalog data.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ECFLOW grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
@@ -94,7 +94,8 @@ async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_t
     try:
         logger.debug('Params - grid_type: %s, event_type: %s, instance_name: %s, met_class: %s, storm_name: %s, cycle: %s, advisory_number: %s, '
                      'run_date: %s, end_date: %s, project_code %s, product_type: %s, limit: %s, ensemble_name: %s', grid_type, event_type,
-            instance_name, met_class, storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit, ensemble_name)
+                     instance_name, met_class, storm_name, cycle, advisory_number, run_date, end_date, project_code, product_type, limit,
+                     ensemble_name)
 
         # init the kwargs variable
         kwargs: dict = {}
@@ -264,7 +265,7 @@ async def get_ui_data_secure(run_id: Union[str, None] = Query(default=None), gri
                              product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
                              use_new_wb: Union[bool, None] = Query(default=False), use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
-    Gets the json formatted map UI catalog data.
+    Gets the JSON formatted map UI catalog data.
     4460-2024020500-gfsforecast
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the run ID
@@ -353,7 +354,7 @@ async def get_ui_data_file(file_name: Union[str, None] = Query(default='apsviz.j
                            product_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=7),
                            use_new_wb: Union[bool, None] = Query(default=False), use_v3_sp: Union[bool, None] = Query(default=False), ) -> json:
     """
-    Returns the json formatted map UI catalog data in a file specified.
+    Returns the JSON formatted map UI catalog data in a file specified.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;file_name: The name of the output file (default is apsviz.json)
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the grid
@@ -644,7 +645,7 @@ async def get_station_data_file(file_name: Union[str, None] = Query(default='sta
 async def get_catalog_member_records(run_id: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
                                      filter_event_type: Union[str, None] = Query(default=None), limit: Union[int, None] = Query(default=4)) -> json:
     """
-    Gets the json formatted catalog member data.
+    Gets the JSON formatted catalog member data.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;run_id: Filter by the name of the ECFLOW grid. Leaving this empty will result in getting the latest <limit> records.
     <br/>&nbsp;&nbsp;&nbsp;project_code: Filter by the project code.
@@ -713,7 +714,7 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
                             end_date: Union[str, None] = Query(default=None), project_code: Union[str, None] = Query(default=None),
                             product_type: Union[str, None] = Query(default=None), psc_output: bool = False) -> json:
     """
-    Gets the json formatted UI pulldown data.
+    Gets the JSON formatted UI pulldown data.
     <br/>Note: Leave filtering params empty if not desired.
     <br/>&nbsp;&nbsp;&nbsp;grid_type: Filter by the name of the ECFLOW grid
     <br/>&nbsp;&nbsp;&nbsp;event_type: Filter by the event type
@@ -769,6 +770,159 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     except Exception:
         # return a failure message
         ret_val = {'Error': 'Exception detected trying to get the UI pulldown data.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
+@APP.get('/verify_user', status_code=200, response_model=None)
+async def verify_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None)):
+    """
+    Verifies that the user exists and returns their profile if they do.
+
+    <br/>&nbsp;&nbsp;&nbsp;The user's email address
+    <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
+    """
+    # pylint: disable=locally-disabled, unused-argument
+
+    # init the returned data and HTML status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:
+        # try to make the call for records
+        ret_val: dict = db_info.verify_user(email, password_hash)
+
+        # check the return
+        if ret_val['success']:
+            # create the JWT payload
+            payload = {'bearer_name': os.environ.get("BEARER_NAME"), 'bearer_secret': os.environ.get("BEARER_SECRET")}
+
+            # create an access token
+            token = security.sign_jwt(payload)
+
+            # create a new dict element with the JWT token
+            ret_val['token'] = token['access_token']
+        # the verification was not successful
+        else:
+            ret_val = {'Error': "Could not verify the user's credentials."}
+
+            # set the status to a server error
+            status_code = 404
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Error': 'Exception detected trying to verify the user.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
+@APP.get('/update_user', status_code=200, response_model=None)
+async def update_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
+                      role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None)):
+    """
+    update_user the user profile.
+    <br/>&nbsp;&nbsp;&nbsp;The user's email address
+    <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
+    <br/>&nbsp;&nbsp;&nbsp;The user's role
+    <br/>&nbsp;&nbsp;&nbsp;The user's details
+    """
+    # pylint: disable=locally-disabled, unused-argument
+
+    # init the returned data and HTML status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:
+        # init the kwargs variable
+        kwargs: dict = {}
+
+        # create the param list
+        params: list = ['email', 'password_hash', 'role_id', 'details']
+
+        # loop through the SP params passed in
+        for param in params:
+            # add this parm to the list
+            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # try to make the call for records
+        ret_val: dict = db_info.update_user(**kwargs)
+
+        # check the return
+        if not ret_val['success']:
+            ret_val = {'Error': 'Database error updating the users information.'}
+
+            # set the status to a server error
+            status_code = 500
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Error': 'Exception detected trying to update the user profile.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
+
+@APP.get('/add_user', status_code=200, response_model=None)
+async def add_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
+                   role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None)):
+    """
+    Adds the user and their profile.
+    <br/>&nbsp;&nbsp;&nbsp;The user's email address
+    <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
+    <br/>&nbsp;&nbsp;&nbsp;The user's role
+    <br/>&nbsp;&nbsp;&nbsp;The user's details
+
+    """
+    # pylint: disable=locally-disabled, unused-argument
+
+    # init the returned data and HTML status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:  # init the kwargs variable
+        kwargs: dict = {}
+
+        # create the param list
+        params: list = ['email', 'password_hash', 'role_id', 'details']
+
+        # loop through the SP params passed in
+        for param in params:
+            # add this parm to the list
+            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+
+        # try to make the call for records
+        ret_val: dict = db_info.add_user(**kwargs)
+
+        # check the return
+        if not ret_val['success']:
+            ret_val = {'Error': 'Database error adding the user.'}
+
+            # set the status to a server error
+            status_code = 500
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Error': 'Exception detected trying to add the user.'}
 
         # log the exception
         logger.exception(ret_val)

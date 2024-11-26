@@ -251,7 +251,7 @@ class PGUtilsMultiConnect:
         # insure we have a valid DB connection
         success = self.get_db_connection(db_info)
 
-        # did we get a connection
+        # if we get a connection
         if success:
             # init the cursor
             cursor = None
@@ -274,7 +274,7 @@ class PGUtilsMultiConnect:
                     # specify a return code on an empty result
                     ret_val = -1
                 else:
-                    # get the one and only record of json
+                    # get the result payload
                     ret_val = ret_val[0]
 
             except Exception:
