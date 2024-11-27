@@ -781,13 +781,12 @@ async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), e
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/verify_user', status_code=200, response_model=None)
-async def verify_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None)):
+@APP.get('/verify_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def verify_user(email: Union[str, None] = Query(default=None)):
     """
     Verifies that the user exists and returns their profile if they do.
 
     <br/>&nbsp;&nbsp;&nbsp;The user's email address
-    <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
     """
     # pylint: disable=locally-disabled, unused-argument
 
@@ -797,20 +796,11 @@ async def verify_user(email: Union[str, None] = Query(default=None), password_ha
 
     try:
         # try to make the call for records
-        ret_val: dict = db_info.verify_user(email, password_hash)
+        ret_val: dict = db_info.verify_user(email)
 
         # check the return
-        if ret_val['success']:
-            # create the JWT payload
-            payload = {'bearer_name': os.environ.get("BEARER_NAME"), 'bearer_secret': os.environ.get("BEARER_SECRET")}
-
-            # create an access token
-            token = security.sign_jwt(payload)
-
-            # create a new dict element with the JWT token
-            ret_val['token'] = token['access_token']
-        # the verification was not successful
-        else:
+        if not ret_val['success']:
+            # set the error
             ret_val = {'Error': "Could not verify the user's credentials."}
 
             # set the status to a server error
@@ -830,7 +820,7 @@ async def verify_user(email: Union[str, None] = Query(default=None), password_ha
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/update_user', status_code=200, response_model=None)
+@APP.get('/update_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def update_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
                       role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None)):
     """
@@ -862,7 +852,7 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
         ret_val: dict = db_info.update_user(**kwargs)
 
         # check the return
-        if not ret_val['success']:
+        if ret_val == -1 or not ret_val['success']:
             ret_val = {'Error': 'Database error updating the users information.'}
 
             # set the status to a server error
@@ -882,7 +872,7 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/add_user', status_code=200, response_model=None)
+@APP.get('/add_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def add_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
                    role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None)):
     """
@@ -914,7 +904,7 @@ async def add_user(email: Union[str, None] = Query(default=None), password_hash:
         ret_val: dict = db_info.add_user(**kwargs)
 
         # check the return
-        if not ret_val['success']:
+        if ret_val == -1 or not ret_val['success']:
             ret_val = {'Error': 'Database error adding the user.'}
 
             # set the status to a server error

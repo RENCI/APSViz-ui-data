@@ -602,14 +602,13 @@ class PGImplementation(PGUtilsMultiConnect):
         # Return Pandas dataframe
         return ret_val
 
-    def verify_user(self, email: str, password_hash: str) -> dict:
+    def verify_user(self, email: str) -> dict:
         """
         verifies the user has an account and the password is correct.
 
         if the verification is successful, return a JSON object with pass/fail and user account data
 
         :param email:
-        :param password_hash:
         :return:
         """
         # init the return value:
@@ -621,14 +620,8 @@ class PGImplementation(PGUtilsMultiConnect):
         else:
             email = f"'{email}'"
 
-        # prep the password param for the SP
-        if password_hash is None:
-            password_hash = 'null'
-        else:
-            password_hash = f"'{password_hash}'"
-
         # build the query. this will also return the users profile
-        sql = f"SELECT verify_user(_email := {email}, _password_hash := {password_hash});"
+        sql = f"SELECT verify_user(_email := {email});"
 
         # get the info
         ret_val = self.exec_sql('apsviz', sql)
@@ -671,7 +664,8 @@ class PGImplementation(PGUtilsMultiConnect):
         ret_val = None
 
         # create the SQL query
-        sql = f"SELECT public.update_user({kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, _details:={kwargs['details']});"
+        sql = (f"SELECT public.update_user(_email:={kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, "
+               f"_details:={kwargs['details']});")
 
         # get the info
         ret_val = self.exec_sql('apsviz', sql)
