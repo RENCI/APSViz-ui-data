@@ -236,6 +236,28 @@ class PGImplementation(PGUtilsMultiConnect):
         # return the data to the caller
         return ret_val
 
+    def get_external_layers(self) -> dict:
+        """
+        gets the pulldown data given the list of filtering mechanisms passed.
+
+        :return:
+        """
+        # init the return value
+        ret_val: dict = {}
+
+        # get the pull-down data
+        sql = "SELECT * FROM public.get_external_layers_json();"
+
+        # get the pulldown data
+        ret_val = self.exec_sql('apsviz', sql)
+
+        # make sure this is not an array if only one meteorological class is returned
+        if ret_val == -1:
+            ret_val = {}
+
+        # return the full dataset to the caller
+        return ret_val
+
     def get_pull_down_data(self, **kwargs) -> dict:
         """
         gets the pulldown data given the list of filtering mechanisms passed.

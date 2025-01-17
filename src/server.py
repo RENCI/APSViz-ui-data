@@ -706,6 +706,43 @@ async def get_catalog_member_records(run_id: Union[str, None] = Query(default=No
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
+@APP.get('/get_external_layers', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def get_external_layers():
+    """
+    Gets the list of external layers from the DB.
+
+    """
+    # pylint: disable=locally-disabled, unused-argument
+
+    # init the returned data and HTML status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:
+        # try to make the call for records
+        ret_val: dict = db_info.get_external_layers()
+
+        # check the return
+        if ret_val == -1:
+            # set the error
+            ret_val = {'Error': "Could not retrieve the external layers."}
+
+            # set the status to a server error
+            status_code = 404
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Error': 'Exception detected trying to get the external layers.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
 @APP.get('/get_pulldown_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                             instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
