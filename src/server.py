@@ -59,6 +59,57 @@ APSViz_InstanceNames: EnumType = db_info.get_instance_names('APSViz_InstanceName
 NOPP_InstanceNames: EnumType = db_info.get_instance_names('NOPP_InstanceNames', 'nopp')
 
 
+@APP.get('/get_wms_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def get_wms_data(wms_xml_url: str) -> json:
+    """
+    Parses the XML data from a call to get WMS capabilities and puts it in the DB.
+
+    <br/>&nbsp;&nbsp;&nbsp;wms_xml_url: The URL for "get capabilities" data.
+    """
+    # init the returned data and HTML status code
+    ret_val: dict = {}
+    status_code: int = 200
+
+    try:
+        if len(wms_xml_url) > 0:
+            # try to make the call for records
+            ret_val = db_info.get_wms_xml_data(wms_xml_url)
+
+            if ret_val == 0:
+                # set a warning message
+                ret_val = {'Success': 'The capabilities were successfully installed.'}
+            # check the return for DB errors
+            elif ret_val == -1:
+                ret_val = {'Error': 'Error inserting the data into the database.'}
+
+                # set the status to a not found
+                status_code = 404
+            # check the return for parsing errors
+            elif ret_val == -2:
+                ret_val = {'Error': 'Invalid URL or no capabilities were found.'}
+                # set the status to a not found
+                status_code = 404
+
+            elif ret_val == -3:
+                ret_val = {'Error': 'Error parsing the capabilities data.'}
+                # set the status to a not found
+                status_code = 404
+        else:
+            ret_val = {'Error': 'The URL must be declared.'}
+
+    except Exception:
+        # return a failure message
+        ret_val = {'Exception': 'Error detected parsing the data.'}
+
+        # log the exception
+        logger.exception(ret_val)
+
+        # set the status to a server error
+        status_code = 500
+
+    # return to the caller
+    return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
+
 @APP.get('/get_ui_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),

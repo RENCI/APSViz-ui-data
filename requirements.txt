@@ -22,3 +22,4 @@ scipy==1.14.1
 xarray==2024.10.0
 netcdf4==1.7.2
 pydap==3.5.1
+beautifulsoup4==4.12.3

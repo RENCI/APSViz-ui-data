@@ -13,10 +13,15 @@
 """
 from datetime import datetime, timedelta
 from enum import Enum, EnumType
+import json
 import dateutil.parser
 import pytz
 import pandas as pd
 import numpy as np
+import requests
+
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
 from src.common.pg_utils_multi import PGUtilsMultiConnect
 from src.common.logger import LoggingUtil
@@ -53,6 +58,68 @@ class PGImplementation(PGUtilsMultiConnect):
         """
         # clean up connections and cursors
         PGUtilsMultiConnect.__del__(self)
+
+    def get_wms_xml_data(self, wms_xml_url: str):
+        """
+        Gets/parses a WMS "get capabilities" data from the URL passes and puts it into the DB
+
+        :return:
+        """
+        ret_val: int = 0
+
+        # get the XML data
+        response = requests.get(wms_xml_url)
+
+        # if it went ok and there is data to parse
+        if response.status_code == 200 and len(response.content) > 0:
+            # load the XML data
+            data = BeautifulSoup(response.text, "xml")
+
+            # get all the supported layer types
+            crs = data.find_all('CRS')
+
+            # if the UI supports the layer type
+            if len([x.text for x in crs if x.text == 'EPSG:3857']) == 1:
+                # parse/extract the capabilities
+                source: str = [x.text for x in data.find_all('Title')][0]
+
+                # if no source data found
+                if len(source) == 0:
+                    # use the FQDN
+                    source: str = urlparse(wms_xml_url).netloc
+
+                url: str = data.find('OnlineResource').get('xlink:href')
+                params: dict = {"format": "image/png", "transparent": True, "srs": "EPSG:3857"}
+
+                # get all the layers
+                layers = data.find_all('Layer')
+
+                for layer in layers:
+                    if layer.get('queryable') == '1':
+                        # get the title of the layer
+                        name: str = layer.Title.text
+
+                        # get the layer name
+                        layer_name = layer.Name.text
+
+                        # insert the data into the DB
+                        sql = (f"SELECT public.insert_external_layers(_name:='{name}', _source:='{source}', _url:='{url}', _layer:='{layer_name}', "
+                               f"_params:='{json.dumps(params)}')")
+
+                        # insert the layer details
+                        ret_val = self.exec_sql('apsviz', sql)
+
+                    # check for an insertion error
+                    if ret_val == -1:
+                        break
+            else:
+                ret_val = -3
+        else:
+            # return a failure code
+            ret_val = -2
+
+        # return to the caller
+        return ret_val
 
     def get_map_workbench_data(self, **kwargs):
         """
