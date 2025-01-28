@@ -19,6 +19,7 @@ import pytz
 import pandas as pd
 import numpy as np
 import requests
+import html
 
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
@@ -67,6 +68,9 @@ class PGImplementation(PGUtilsMultiConnect):
         """
         ret_val: int = 0
 
+        # declare a prams object
+        params: dict = {"format": "image/png", "transparent": True, "srs": "EPSG:3857", "legendURL": ""}
+
         # get the XML data
         response = requests.get(wms_xml_url)
 
@@ -88,8 +92,8 @@ class PGImplementation(PGUtilsMultiConnect):
                     # use the FQDN
                     source: str = urlparse(wms_xml_url).netloc
 
+                # find the legend URL
                 url: str = data.find('OnlineResource').get('xlink:href')
-                params: dict = {"format": "image/png", "transparent": True, "srs": "EPSG:3857"}
 
                 # get all the layers
                 layers = data.find_all('Layer')
@@ -101,6 +105,9 @@ class PGImplementation(PGUtilsMultiConnect):
 
                         # get the layer name
                         layer_name = layer.Name.text
+
+                        # get the legend URL
+                        self.get_legend_url(layer, params)
 
                         # insert the data into the DB
                         sql = (f"SELECT public.insert_external_layers(_name:='{name}', _source:='{source}', _url:='{url}', _layer:='{layer_name}', "
@@ -120,6 +127,35 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # return to the caller
         return ret_val
+
+    @staticmethod
+    def get_legend_url(layer, params):
+        """
+        Gets the legend URL
+
+        :param layer:
+        :param params:
+        :return:
+        """
+        # empty this to prep for a fill of good data
+        params['legendURL'] = ""
+
+        # loop through the styles to find the legend
+        for style in layer.find_all('Style'):
+            # loop through the style names
+            for style_name in style.find_all('Name'):
+                # if this is the raster legend
+                if style_name.text == 'raster/default':
+                    # save the URL
+                    legend_url = style.LegendURL.OnlineResource.get('xlink:href')
+
+                    # if a legend URL was found
+                    if legend_url:
+                        # save it
+                        params['legendURL'] = html.unescape(legend_url)
+
+                        # no need to continue
+                        break
 
     def get_map_workbench_data(self, **kwargs):
         """
@@ -558,7 +594,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return value:
         ret_val: pd.DataFrame = pd.DataFrame()
 
-        # Run query
+        # Run the query
         sql = f"SELECT * FROM get_forecast_timeseries_station_data(_station_name := '{station_name}', _timemark := '{time_mark}', " \
               f"_max_forecast_endtime := '{max_forecast_endtime}', _data_source := '{data_source}',  _source_instance := '{instance_name}')"
 
@@ -589,7 +625,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # init the return value:
         ret_val: pd.DataFrame = pd.DataFrame()
 
-        # Run query
+        # Run the query
         sql = f"SELECT * FROM get_nowcast_timeseries_station_data(_station_name := '{station_name}', _start_date := '{start_date}', " \
               f"_end_date := '{end_date}', _data_source := '{data_source}',  _source_instance := '{instance_name}')"
 
@@ -700,7 +736,7 @@ class PGImplementation(PGUtilsMultiConnect):
         :param email:
         :return:
         """
-        # init the return value:
+        # init the return value
         ret_val = None
 
         # prep the email param for the SP
@@ -709,7 +745,7 @@ class PGImplementation(PGUtilsMultiConnect):
         else:
             email = f"'{email}'"
 
-        # build the query. this will also return the users profile
+        # build the query. this will also return the user's profile
         sql = f"SELECT verify_user(_email := {email});"
 
         # get the info
@@ -731,7 +767,8 @@ class PGImplementation(PGUtilsMultiConnect):
         ret_val = None
 
         # build the query
-        sql = f"SELECT public.add_user(_email:={kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, _details:={kwargs['details']});"
+        sql = (f"SELECT public.add_user(_email:={kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, "
+               f"_details:={kwargs['details']});")
 
         # get the info
         ret_val = self.exec_sql('apsviz', sql)
