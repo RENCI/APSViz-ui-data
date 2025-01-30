@@ -83,7 +83,7 @@ class PGImplementation(PGUtilsMultiConnect):
             crs = data.find_all('CRS')
 
             # if the UI supports the layer type
-            if len([x.text for x in crs if x.text == 'EPSG:3857']) == 1:
+            if len([x.text for x in crs if x.text == 'EPSG:3857']) > 0:
                 # parse/extract the capabilities
                 source: str = [x.text for x in data.find_all('Title')][0]
 
@@ -99,7 +99,7 @@ class PGImplementation(PGUtilsMultiConnect):
                 layers = data.find_all('Layer')
 
                 for layer in layers:
-                    if layer.get('queryable') == '1':
+                    if layer.get('queryable') is not None and int(layer.get('queryable')) >= 0:
                         # get the title of the layer
                         name: str = layer.Title.text
 
@@ -117,8 +117,8 @@ class PGImplementation(PGUtilsMultiConnect):
                         ret_val = self.exec_sql('apsviz', sql)
 
                     # check for an insertion error
-                    if ret_val == -1:
-                        break
+                    # if ret_val == -1:
+                    #     break
             else:
                 ret_val = -3
         else:
@@ -145,17 +145,19 @@ class PGImplementation(PGUtilsMultiConnect):
             # loop through the style names
             for style_name in style.find_all('Name'):
                 # if this is the raster legend
-                if style_name.text == 'raster/default':
-                    # save the URL
-                    legend_url = style.LegendURL.OnlineResource.get('xlink:href')
+                if style_name.text == 'raster/default' or len(style.find_all('Name')) == 1:
+                    # if there is a legend URL in the data
+                    if style.LegendURL is not None:
+                        # get the URL
+                        legend_url = style.LegendURL.OnlineResource.get('xlink:href')
 
-                    # if a legend URL was found
-                    if legend_url:
-                        # save it
-                        params['legendURL'] = html.unescape(legend_url)
+                        # if a legend URL was found
+                        if legend_url is not None:
+                            # save it
+                            params['legendURL'] = html.unescape(legend_url)
 
-                        # no need to continue
-                        break
+                            # no need to continue
+                            break
 
     def get_map_workbench_data(self, **kwargs):
         """
