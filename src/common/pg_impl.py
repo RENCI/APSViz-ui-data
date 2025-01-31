@@ -770,7 +770,8 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # build the query
         sql = (f"SELECT public.add_user(_email:={kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, "
-               f"_details:={kwargs['details']});")
+               f"_details:={kwargs['details']}, _maxelestyle:={kwargs['maxele_style']}, _maxwvelstyle:={kwargs['maxwvel_style']}, "
+               f"_swanstyle:={kwargs['swan_style']});")
 
         # get the info
         ret_val = self.exec_sql('apsviz', sql)
