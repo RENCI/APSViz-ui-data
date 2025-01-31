@@ -962,13 +962,19 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
 
 @APP.get('/add_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def add_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
-                   role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None)):
+                   role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None),
+                   maxele_style: Union[str, None] = Query(default=None), maxwvel_style: Union[str, None] = Query(default=None),
+                   swan_style: Union[str, None] = Query(default=None)
+                   ):
     """
     Adds the user and their profile.
     <br/>&nbsp;&nbsp;&nbsp;The user's email address
     <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
     <br/>&nbsp;&nbsp;&nbsp;The user's role
-    <br/>&nbsp;&nbsp;&nbsp;The user's details
+    <br/>&nbsp;&nbsp;&nbsp;The user's profile details
+    <br/>&nbsp;&nbsp;&nbsp;The maxele style
+    <br/>&nbsp;&nbsp;&nbsp;The maxwvel style
+    <br/>&nbsp;&nbsp;&nbsp;The swan style
 
     """
     # pylint: disable=locally-disabled, unused-argument
@@ -981,7 +987,7 @@ async def add_user(email: Union[str, None] = Query(default=None), password_hash:
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['email', 'password_hash', 'role_id', 'details']
+        params: list = ['email', 'password_hash', 'role_id', 'details', 'maxele_style', 'maxwvel_style', 'swan_style']
 
         # loop through the SP params passed in
         for param in params:
