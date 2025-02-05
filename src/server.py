@@ -110,6 +110,7 @@ async def get_wms_data(wms_xml_url: str) -> json:
     # return to the caller
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
+
 @APP.get('/get_ui_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_ui_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                       instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
@@ -794,6 +795,7 @@ async def get_external_layers():
     # return to the caller
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
+
 @APP.get('/get_pulldown_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def get_pulldown_data(grid_type: Union[str, None] = Query(default=None), event_type: Union[str, None] = Query(default=None),
                             instance_name: Union[str, None] = Query(default=None), met_class: Union[str, None] = Query(default=None),
@@ -910,13 +912,19 @@ async def verify_user(email: Union[str, None] = Query(default=None)):
 
 @APP.get('/update_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def update_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
-                      role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None)):
+                      role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None),
+                      maxelestyle: Union[str, None] = Query(default=None), maxwvelstyle: Union[str, None] = Query(default=None),
+                      swanstyle: Union[str, None] = Query(default=None)):
     """
     update_user the user profile.
     <br/>&nbsp;&nbsp;&nbsp;The user's email address
     <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
     <br/>&nbsp;&nbsp;&nbsp;The user's role
-    <br/>&nbsp;&nbsp;&nbsp;The user's details
+    <br/>&nbsp;&nbsp;&nbsp;The user's profile details
+    <br/>&nbsp;&nbsp;&nbsp;The user's maxelestyle style selection
+    <br/>&nbsp;&nbsp;&nbsp;The user's maxwvelstyle style selection
+    <br/>&nbsp;&nbsp;&nbsp;The user's sanstyle style selection
+
     """
     # pylint: disable=locally-disabled, unused-argument
 
@@ -929,7 +937,7 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['email', 'password_hash', 'role_id', 'details']
+        params: list = ['email', 'password_hash', 'role_id', 'details', 'maxelestyle', 'maxwvelstyle', 'swanstyle']
 
         # loop through the SP params passed in
         for param in params:
@@ -941,7 +949,7 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
 
         # check the return
         if ret_val == -1 or not ret_val['success']:
-            ret_val = {'Error': 'Database error updating the users information.'}
+            ret_val = {'Error': 'Database error updating the users profile.'}
 
             # set the status to a server error
             status_code = 500
@@ -964,8 +972,7 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
 async def add_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
                    role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None),
                    maxele_style: Union[str, None] = Query(default=None), maxwvel_style: Union[str, None] = Query(default=None),
-                   swan_style: Union[str, None] = Query(default=None)
-                   ):
+                   swan_style: Union[str, None] = Query(default=None)):
     """
     Adds the user and their profile.
     <br/>&nbsp;&nbsp;&nbsp;The user's email address
