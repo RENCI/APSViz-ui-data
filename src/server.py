@@ -913,17 +913,17 @@ async def verify_user(email: Union[str, None] = Query(default=None)):
 @APP.get('/update_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
 async def update_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
                       role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None),
-                      maxelestyle: Union[str, None] = Query(default=None), maxwvelstyle: Union[str, None] = Query(default=None),
-                      swanstyle: Union[str, None] = Query(default=None)):
+                      maxele_style: Union[str, None] = Query(default=None), maxwvel_style: Union[str, None] = Query(default=None),
+                      swan_style: Union[str, None] = Query(default=None)):
     """
     update_user the user profile.
     <br/>&nbsp;&nbsp;&nbsp;The user's email address
     <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
     <br/>&nbsp;&nbsp;&nbsp;The user's role
     <br/>&nbsp;&nbsp;&nbsp;The user's profile details
-    <br/>&nbsp;&nbsp;&nbsp;The user's maxelestyle style selection
-    <br/>&nbsp;&nbsp;&nbsp;The user's maxwvelstyle style selection
-    <br/>&nbsp;&nbsp;&nbsp;The user's sanstyle style selection
+    <br/>&nbsp;&nbsp;&nbsp;The user's maxele_style style selection
+    <br/>&nbsp;&nbsp;&nbsp;The user's maxwvel_style style selection
+    <br/>&nbsp;&nbsp;&nbsp;The user's swan_style style selection
 
     """
     # pylint: disable=locally-disabled, unused-argument
@@ -937,7 +937,7 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
         kwargs: dict = {}
 
         # create the param list
-        params: list = ['email', 'password_hash', 'role_id', 'details', 'maxelestyle', 'maxwvelstyle', 'swanstyle']
+        params: list = ['email', 'password_hash', 'role_id', 'details', 'maxele_style', 'maxwvel_style', 'swan_style']
 
         # loop through the SP params passed in
         for param in params:

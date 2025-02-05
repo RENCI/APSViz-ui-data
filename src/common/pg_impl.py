@@ -794,7 +794,7 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # create the SQL query
         sql = (f"SELECT public.update_user(_email:={kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, "
-               f"_details:={kwargs['details']}, _maxelestyle:={kwargs['maxelestyle']}, _maxwvelstyle:={kwargs['maxwvelstyle']}, _swanstyle:={kwargs['swanstyle']});")
+               f"_details:={kwargs['details']}, _maxelestyle:={kwargs['maxele_style']}, _maxwvelstyle:={kwargs['maxwvel_style']}, _swanstyle:={kwargs['swan_style']});")
 
         # get the info
         ret_val = self.exec_sql('apsviz', sql)
