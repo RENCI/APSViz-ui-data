@@ -27,7 +27,7 @@ from src.common.logger import LoggingUtil
 from src.common.pg_impl import PGImplementation
 from src.common.security import Security
 from src.common.bearer import JWTBearer
-from src.common.utils import GenUtils, BrandName
+from src.common.utils import GenUtils, BrandName, UserInfo
 from src.common.geopoints import GeoPoint
 
 # set the app version
@@ -910,13 +910,10 @@ async def verify_user(email: Union[str, None] = Query(default=None)):
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/update_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
-async def update_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
-                      role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None),
-                      maxele_style: Union[str, None] = Query(default=None), maxwvel_style: Union[str, None] = Query(default=None),
-                      swan_style: Union[str, None] = Query(default=None)):
+@APP.post('/update_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def update_user(user_info: UserInfo):
     """
-    update_user the user profile.
+    update the user profile.
     <br/>&nbsp;&nbsp;&nbsp;The user's email address
     <br/>&nbsp;&nbsp;&nbsp;The user's password (hashed)
     <br/>&nbsp;&nbsp;&nbsp;The user's role
@@ -936,13 +933,10 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
         # init the kwargs variable
         kwargs: dict = {}
 
-        # create the param list
-        params: list = ['email', 'password_hash', 'role_id', 'details', 'maxele_style', 'maxwvel_style', 'swan_style']
-
         # loop through the SP params passed in
-        for param in params:
+        for a, v in user_info.__dict__.items():
             # add this parm to the list
-            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+            kwargs.update({a: 'null' if v is None else f"'{v}'"})
 
         # try to make the call for records
         ret_val: dict = db_info.update_user(**kwargs)
@@ -968,11 +962,8 @@ async def update_user(email: Union[str, None] = Query(default=None), password_ha
     return JSONResponse(content=ret_val, status_code=status_code, media_type="application/json")
 
 
-@APP.get('/add_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
-async def add_user(email: Union[str, None] = Query(default=None), password_hash: Union[str, None] = Query(default=None),
-                   role_id: Union[str, None] = Query(default=None), details: Union[str, None] = Query(default=None),
-                   maxele_style: Union[str, None] = Query(default=None), maxwvel_style: Union[str, None] = Query(default=None),
-                   swan_style: Union[str, None] = Query(default=None)):
+@APP.post('/add_user', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
+async def add_user(user_info: UserInfo):
     """
     Adds the user and their profile.
     <br/>&nbsp;&nbsp;&nbsp;The user's email address
@@ -990,16 +981,14 @@ async def add_user(email: Union[str, None] = Query(default=None), password_hash:
     ret_val: dict = {}
     status_code: int = 200
 
-    try:  # init the kwargs variable
+    try:
+        # init the kwargs variable
         kwargs: dict = {}
 
-        # create the param list
-        params: list = ['email', 'password_hash', 'role_id', 'details', 'maxele_style', 'maxwvel_style', 'swan_style']
-
         # loop through the SP params passed in
-        for param in params:
+        for a, v in user_info.__dict__.items():
             # add this parm to the list
-            kwargs.update({param: 'null' if not locals()[param] else f"'{locals()[param]}'"})
+            kwargs.update({a: 'null' if v is None else f"'{v}'"})
 
         # try to make the call for records
         ret_val: dict = db_info.add_user(**kwargs)

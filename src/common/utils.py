@@ -15,7 +15,7 @@
 import os
 import shutil
 from enum import Enum
-
+from pydantic import BaseModel
 
 class GenUtils:
     """
@@ -95,6 +95,19 @@ class GenUtils:
         :return:
         """
         shutil.rmtree(file_path)
+
+
+class UserInfo(BaseModel):
+    """
+    Class for user info
+    """
+    email: str
+    password_hash: str | None = None
+    role_id: str | None = None
+    details: str | None = None
+    maxele_style: str | None = None
+    maxwvel_style: str | None = None
+    swan_style: str | None = None
 
 
 class BrandName(str, Enum):
