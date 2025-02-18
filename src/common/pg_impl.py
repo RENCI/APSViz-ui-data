@@ -101,7 +101,7 @@ class PGImplementation(PGUtilsMultiConnect):
                 for layer in layers:
                     if layer.get('queryable') is not None and int(layer.get('queryable')) >= 0:
                         # get the title of the layer
-                        name: str = layer.Title.text
+                        name: str = layer.Title.text.replace('\'', '')
 
                         # get the layer name
                         layer_name = layer.Name.text
