@@ -98,7 +98,9 @@ class PGImplementation(PGUtilsMultiConnect):
                 # get all the layers
                 layers = data.find_all('Layer')
 
+                # loop through the layers
                 for layer in layers:
+                    # wis this a legit layer
                     if layer.get('queryable') is not None and int(layer.get('queryable')) >= 0:
                         # get the title of the layer
                         name: str = layer.Title.text.replace('\'', '')
