@@ -13,17 +13,15 @@
 """
 from datetime import datetime, timedelta
 from enum import Enum, EnumType
+from urllib.parse import urlparse
+import html
 import json
 import dateutil.parser
 import pytz
 import pandas as pd
 import numpy as np
 import requests
-import html
-
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
-
 from src.common.pg_utils_multi import PGUtilsMultiConnect
 from src.common.logger import LoggingUtil
 
@@ -72,7 +70,7 @@ class PGImplementation(PGUtilsMultiConnect):
         params: dict = {"format": "image/png", "transparent": True, "srs": "EPSG:3857", "legendURL": ""}
 
         # get the XML data
-        response = requests.get(wms_xml_url)
+        response = requests.get(wms_xml_url, timeout=5)
 
         # if it went ok and there is data to parse
         if response.status_code == 200 and len(response.content) > 0:
@@ -118,9 +116,7 @@ class PGImplementation(PGUtilsMultiConnect):
                         # insert the layer details
                         ret_val = self.exec_sql('apsviz', sql)
 
-                    # check for an insertion error
-                    # if ret_val == -1:
-                    #     break
+                    # check for an insertion error  # if ret_val == -1:  #     break
             else:
                 ret_val = -3
         else:
@@ -796,7 +792,8 @@ class PGImplementation(PGUtilsMultiConnect):
 
         # create the SQL query
         sql = (f"SELECT public.update_user(_email:={kwargs['email']}, _password_hash:={kwargs['password_hash']}, _role_id:={kwargs['role_id']}, "
-               f"_details:={kwargs['details']}, _maxelestyle:={kwargs['maxele_style']}, _maxwvelstyle:={kwargs['maxwvel_style']}, _swanstyle:={kwargs['swan_style']});")
+               f"_details:={kwargs['details']}, _maxelestyle:={kwargs['maxele_style']}, _maxwvelstyle:={kwargs['maxwvel_style']}, "
+               f"_swanstyle:={kwargs['swan_style']});")
 
         # get the info
         ret_val = self.exec_sql('apsviz', sql)

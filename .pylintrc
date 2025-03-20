@@ -20,3 +20,4 @@ max-branches=25
 max-statements=62
 max-positional-arguments=20
 max-attributes=12
+max-module-lines=1100
