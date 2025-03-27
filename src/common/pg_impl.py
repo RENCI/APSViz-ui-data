@@ -11,7 +11,7 @@
 
     Author: Phil Owen, RENCI.org
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum, EnumType
 from urllib.parse import urlparse
 import html
@@ -58,7 +58,7 @@ class PGImplementation(PGUtilsMultiConnect):
         # clean up connections and cursors
         PGUtilsMultiConnect.__del__(self)
 
-    def get_wms_xml_data(self, wms_xml_url: str):
+    def get_wms_xml_data(self, wms_xml_url: str, prefix: str):
         """
         Gets/parses a WMS "get capabilities" data from the URL passes and puts it into the DB
 
@@ -85,10 +85,17 @@ class PGImplementation(PGUtilsMultiConnect):
                 # parse/extract the capabilities
                 source: str = [x.text for x in data.find_all('Title')][0]
 
-                # if no source data found
+                # if no data source name is found
                 if len(source) == 0:
                     # use the FQDN
                     source: str = urlparse(wms_xml_url).netloc
+
+                # if no prefix is found
+                if prefix is None:
+                    prefix = datetime.now(timezone.utc).strftime("%Y-%m-%d %H%M") + 'Z'
+
+                # put the source name together
+                source = prefix + ' - ' + source
 
                 # find the legend URL
                 url: str = data.find('OnlineResource').get('xlink:href')
@@ -98,9 +105,9 @@ class PGImplementation(PGUtilsMultiConnect):
 
                 # loop through the layers
                 for layer in layers:
-                    # wis this a legit layer
+                    # is this a legit layer?
                     if layer.get('queryable') is not None and int(layer.get('queryable')) >= 0:
-                        # get the title of the layer
+                        # get the title of the layer, remove single quotes
                         name: str = layer.Title.text.replace('\'', '')
 
                         # get the layer name
@@ -151,6 +158,9 @@ class PGImplementation(PGUtilsMultiConnect):
 
                         # if a legend URL was found
                         if legend_url is not None:
+                            # strip off the /default ending from the url if it exists
+                            legend_url = legend_url.replace('/default', '')
+
                             # save it
                             params['legendURL'] = html.unescape(legend_url)
 
