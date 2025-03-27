@@ -60,11 +60,12 @@ NOPP_InstanceNames: EnumType = db_info.get_instance_names('NOPP_InstanceNames', 
 
 
 @APP.get('/get_wms_data', dependencies=[Depends(JWTBearer(security))], status_code=200, response_model=None)
-async def get_wms_data(wms_xml_url: str) -> json:
+async def get_wms_data(wms_xml_url: str, prefix: Union[str, None] = Query(default=None)) -> json:
     """
     Parses the XML data from a call to get WMS capabilities and puts it in the DB.
 
     <br/>&nbsp;&nbsp;&nbsp;wms_xml_url: The URL for "get capabilities" data.
+    <br/>&nbsp;&nbsp;&nbsp;prefix: the prefix of the source name. The data insertion date (UTC) is the default.
     """
     # init the returned data and HTML status code
     ret_val: dict = {}
@@ -73,7 +74,7 @@ async def get_wms_data(wms_xml_url: str) -> json:
     try:
         if len(wms_xml_url) > 0:
             # try to make the call for records
-            ret_val = db_info.get_wms_xml_data(wms_xml_url)
+            ret_val = db_info.get_wms_xml_data(wms_xml_url, prefix)
 
             if ret_val == 0:
                 # set a warning message
